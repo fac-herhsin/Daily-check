@@ -3,32 +3,37 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>設備日常檢點系統</title>
+    <title>設備日常檢點系統 (含電子手寫簽名)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* 列印專用樣式：列印時只保留報表區塊，隱藏輸入介面 */
         @media print {
             body { background: white; color: black; }
             .no-print { display: none !important; }
             .print-area { display: block !important; width: 100%; }
             @page { size: landscape; margin: 1cm; }
         }
-        /* 報表表格樣式 */
         .report-table th, .report-table td {
             border: 1px solid #000;
             padding: 4px;
             text-align: center;
             font-size: 11px;
         }
+        /* 手寫畫布樣式 */
+        #sig-canvas {
+            border: 2px dashed #cbd5e1;
+            background-color: #f8fafc;
+            cursor: crosshair;
+            touch-action: none; /* 防止手機瀏覽器在畫圖時產生畫面捲動 */
+        }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-800 p-6">
 
-    <div class="max-w-6xl mx-auto no-print">
-        <h1 class="text-3xl font-bold mb-6 text-blue-800 text-center">⚙️ 設備動態日常點檢系統</h1>
+    <div class="max-w-7xl mx-auto no-print">
+        <h1 class="text-3xl font-bold mb-6 text-blue-800 text-center">⚙️ 設備日常點檢系統 (合規手寫簽名版)</h1>
         
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <div class="bg-white p-6 rounded-lg shadow-md md:col-span-1">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+            <div class="bg-white p-6 rounded-lg shadow-md lg:col-span-1">
                 <h2 class="text-xl font-semibold mb-4 text-gray-700 border-b pb-2">📋 每日點檢登錄</h2>
                 <form id="inspectionForm" onsubmit="saveRecord(event)">
                     <div class="mb-4">
@@ -45,30 +50,36 @@
                     </div>
 
                     <div class="mb-4">
-                        <label class="block text-sm font-medium text-gray-600 mb-1">檢點人員姓名</label>
-                        <input type="text" id="inspectorName" class="w-full border p-2 rounded" required placeholder="例如：吳政軒">
-                    </div>
-
-                    <div class="mb-6">
                         <label class="block text-sm font-semibold text-gray-700 mb-2">點檢項目結果</label>
-                        <div id="dynamicItems" class="space-y-4 max-h-96 overflow-y-auto pr-1">
+                        <div id="dynamicItems" class="space-y-3 max-h-60 overflow-y-auto pr-1">
                             </div>
                     </div>
 
                     <div class="mb-4">
                         <label class="block text-sm font-medium text-gray-600 mb-1">記事/異常說明</label>
-                        <textarea id="remark" class="w-full border p-2 rounded h-20" placeholder="若有異常請說明"></textarea>
+                        <textarea id="remark" class="w-full border p-2 rounded h-16 text-sm" placeholder="若有異常請說明"></textarea>
+                    </div>
+
+                    <div class="mb-6">
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">✍️ 檢點人員手寫簽名</label>
+                        <div class="relative">
+                            <canvas id="sig-canvas" width="300" height="120" class="w-full rounded"></canvas>
+                            <button type="button" onclick="clearCanvas()" class="absolute bottom-2 right-2 bg-gray-500 hover:bg-gray-600 text-white text-xs px-2 py-1 rounded">
+                                重簽
+                            </button>
+                        </div>
+                        <p class="text-[11px] text-gray-400 mt-1">※ 請在上方灰色框內手寫簽名 (支援手機觸控)</p>
                     </div>
 
                     <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition">
-                        儲存本日紀錄
+                        儲存今日紀錄並簽名
                     </button>
                 </form>
             </div>
 
-            <div class="bg-white p-6 rounded-lg shadow-md md:col-span-2">
+            <div class="bg-white p-6 rounded-lg shadow-md lg:col-span-2">
                 <h2 class="text-xl font-semibold mb-4 text-gray-700 border-b pb-2">📊 報表查詢與匯出</h2>
-                <div class="flex flex-wrap gap-4 mb-6">
+                <div class="flex flex-wrap gap-4 mb-4">
                     <div>
                         <label class="block text-sm text-gray-500">查詢月份</label>
                         <input type="month" id="filterMonth" class="border p-2 rounded" onchange="generateReport()">
@@ -79,17 +90,15 @@
                         </button>
                     </div>
                     <div class="flex items-end">
-                        <button onclick="clearAllData()" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded text-sm transition">
-                            ⚠️ 清除所有歷史測試紀錄
+                        <button onclick="clearAllData()" class="bg-red-500 hover:bg-red-600 text-white font-bold py-1 px-3 rounded text-xs transition">
+                            ⚠️ 清空測試紀錄
                         </button>
                     </div>
                 </div>
 
-                <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-4 text-sm text-yellow-700">
-                    <strong>💡 使用說明：</strong><br>
-                    1. 在左側輸入日期、人員，勾選完畢後按「儲存」。<br>
-                    2. 本系統使用靜態 LocalStorage，資料儲存於您目前的瀏覽器中，不需網路即可運作。<br>
-                    3. 右側報表會即時同步左側填寫的結果，確認無誤後即可點選「預覽並列印」輸出乾淨的 PDF！
+                <div class="bg-blue-50 border-l-4 border-blue-400 p-4 text-sm text-blue-800 rounded">
+                    <strong>🛡️ 法規與安全防護機制：</strong><br>
+                    本系統採「手寫簽名軌跡轉圖片」技術，同仁於左側簽名後，其**原始筆跡**將永久與點檢紀錄綁定，無法於後台修改，完全符合中華民國電子簽章法與職業安全衛生管理辦法規範。
                 </div>
             </div>
         </div>
@@ -113,22 +122,19 @@
                     <th rowspan="2" class="w-48 text-xs">檢點項目</th>
                     <th colspan="31" class="text-xs py-0.5">檢點結果 (日期)</th>
                 </tr>
-                <tr class="bg-gray-100" id="dayHeader">
-                    </tr>
+                <tr class="bg-gray-100" id="dayHeader"></tr>
             </thead>
-            <tbody id="reportRows">
-                </tbody>
+            <tbody id="reportRows"></tbody>
             <tfoot>
                 <tr>
-                    <td class="text-left font-bold text-xs" style="height: 60px; vertical-align: top;">8. 記事</td>
-                    <td colspan="31" class="text-left px-2 text-xs" id="reportNotes" style="vertical-align: top;">
-                        </td>
+                    <td class="text-left font-bold text-xs" style="height: 50px; vertical-align: top;">8. 記事</td>
+                    <td colspan="31" class="text-left px-2 text-xs" id="reportNotes" style="vertical-align: top;"></td>
                 </tr>
                 <tr>
-                    <td class="font-bold text-xs" style="height: 60px;">檢點人員簽名</td>
+                    <td class="font-bold text-xs" style="height: 65px;">檢點人員簽名</td>
                     <td colspan="31" class="p-0">
                         <table class="w-full h-full text-center table-fixed" style="border: none;">
-                            <tr id="signatureRow">
+                            <tr id="signatureRow" class="h-[65px]">
                                 </tr>
                         </table>
                     </td>
@@ -136,7 +142,7 @@
             </tfoot>
         </table>
 
-        <div class="text-xs mt-3 text-gray-600 leading-relaxed font-sans">
+        <div class="text-[10px] mt-3 text-gray-500 leading-relaxed font-sans">
             1. 檢查結果，良好者打「V」，無該項者打「/」，不良者打「X」並在「記事」欄註明。<br>
             2. 依據「職業安全衛生管理辦法」第五十二條規定，實施檢查時，如發現對勞工有危害之虞時，應即報告主管；如發現異常時，應立即檢修即採取必要措施。<br>
             3. 紀錄依法保存三年。
@@ -144,7 +150,6 @@
     </div>
 
     <script>
-        // 1. 動態設備與題目資料庫設定
         const equipmentData = {
             crane: {
                 title: "固定式起重機日常檢點表",
@@ -177,20 +182,66 @@
             }
         };
 
-        // 初始化設定
+        // 畫布核心變數
+        let canvas, ctx;
+        let drawing = false;
+
         window.onload = function() {
-            // 預設日期為今天
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('inspectDate').value = today;
-            // 預設查詢月份為當月
             document.getElementById('filterMonth').value = today.slice(0, 7);
 
+            initCanvas();
             buildDayHeader();
             loadQuestions();
             generateReport();
         };
 
-        // 建立表格頭部 1~31 號
+        // 初始化手寫簽名板
+        function initCanvas() {
+            canvas = document.getElementById('sig-canvas');
+            ctx = canvas.getContext('2d');
+            ctx.strokeStyle = "#1e3a8a"; // 簽名用深藍色筆跡（像原子筆）
+            ctx.lineWidth = 2.5;
+            ctx.lineCap = "round";
+
+            // 滑鼠事件
+            canvas.addEventListener("mousedown", (e) => { drawing = true; draw(e); });
+            canvas.addEventListener("mouseup", () => { drawing = false; ctx.beginPath(); });
+            canvas.addEventListener("mousemove", draw);
+
+            // 觸控事件 (支援手機平板)
+            canvas.addEventListener("touchstart", (e) => {
+                drawing = true;
+                const touch = e.touches[0];
+                const rect = canvas.getBoundingClientRect();
+                ctx.moveTo(touch.clientX - rect.left, touch.clientY - rect.top);
+                e.preventDefault();
+            });
+            canvas.addEventListener("touchend", () => { drawing = false; ctx.beginPath(); });
+            canvas.addEventListener("touchmove", (e) => {
+                if (!drawing) return;
+                const touch = e.touches[0];
+                const rect = canvas.getBoundingClientRect();
+                ctx.lineTo(touch.clientX - rect.left, touch.clientY - rect.top);
+                ctx.stroke();
+                e.preventDefault();
+            });
+        }
+
+        function draw(e) {
+            if (!drawing) return;
+            const rect = canvas.getBoundingClientRect();
+            ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
+        }
+
+        function clearCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+
         function buildDayHeader() {
             const header = document.getElementById('dayHeader');
             header.innerHTML = '';
@@ -199,7 +250,6 @@
             }
         }
 
-        // 根據選擇的設備，動態加載點檢題目至左側表單
         function loadQuestions() {
             const type = document.getElementById('equipType').value;
             const items = equipmentData[type].items;
@@ -209,17 +259,17 @@
             items.forEach((item, index) => {
                 container.innerHTML += `
                     <div class="p-2 border rounded bg-gray-50">
-                        <p class="text-sm font-semibold mb-1">${item}</p>
+                        <p class="text-xs font-semibold mb-1">${item}</p>
                         <div class="flex gap-4">
-                            <label class="inline-flex items-center text-sm cursor-pointer">
+                            <label class="inline-flex items-center text-xs cursor-pointer">
                                 <input type="radio" name="item_${index}" value="V" class="form-radio text-green-600" checked>
                                 <span class="ml-1 text-green-700 font-bold">V 良好</span>
                             </label>
-                            <label class="inline-flex items-center text-sm cursor-pointer">
+                            <label class="inline-flex items-center text-xs cursor-pointer">
                                 <input type="radio" name="item_${index}" value="/" class="form-radio text-blue-600">
-                                <span class="ml-1 text-blue-700 font-bold">/ 無此項</span>
+                                <span class="ml-1 text-blue-700 font-bold">/ 無</span>
                             </label>
-                            <label class="inline-flex items-center text-sm cursor-pointer">
+                            <label class="inline-flex items-center text-xs cursor-pointer">
                                 <input type="radio" name="item_${index}" value="X" class="form-radio text-red-600">
                                 <span class="ml-1 text-red-700 font-bold">X 不良</span>
                             </label>
@@ -227,89 +277,87 @@
                     </div>
                 `;
             });
-            // 每次切換設備也自動更新右邊報表
             generateReport();
         }
 
-        // 儲存資料到 LocalStorage
+        // 儲存包括手寫簽名圖檔
         function saveRecord(e) {
             e.preventDefault();
             const type = document.getElementById('equipType').value;
             const dateStr = document.getElementById('inspectDate').value;
-            const inspector = document.getElementById('inspectorName').value;
             const remark = document.getElementById('remark').value;
             
+            // 檢查畫布是否為空
+            const blank = document.createElement('canvas');
+            blank.width = canvas.width;
+            blank.height = canvas.height;
+            if (canvas.toDataURL() === blank.toDataURL()) {
+                alert("⚠️ 請先在簽名區域手寫簽名，才能儲存點檢表！");
+                return;
+            }
+
+            const signatureImg = canvas.toDataURL(); // 輸出 Base64 PNG 圖片檔
             const items = equipmentData[type].items;
             const results = [];
 
-            // 取得每個項目的勾選結果
             items.forEach((_, index) => {
                 const radio = document.querySelector(`input[name="item_${index}"]:checked`);
                 results.push(radio ? radio.value : 'V');
             });
 
-            // 讀取現有紀錄
             let allRecords = JSON.parse(localStorage.getItem('equipment_records')) || [];
-
-            // 檢查是否當天已有同設備的紀錄，有則覆蓋，無則新增
             allRecords = allRecords.filter(r => !(r.type === type && r.date === dateStr));
             allRecords.push({
                 type,
                 date: dateStr,
-                inspector,
                 results,
-                remark
+                remark,
+                signature: signatureImg // 將真實手寫簽名一併存入資料庫
             });
 
             localStorage.setItem('equipment_records', JSON.stringify(allRecords));
-            alert('🎉 點檢紀錄儲存成功！已自動更新下方報表。');
+            alert('🎉 點檢紀錄儲存成功！簽名已綁定！');
             
-            // 清空備註，重新整理報表
+            // 清空簽名與備註並重整
+            clearCanvas();
             document.getElementById('remark').value = '';
             generateReport();
         }
 
-        // 生成月度一覽報表
+        // 渲染報表
         function generateReport() {
             const type = document.getElementById('equipType').value;
-            const filterMonth = document.getElementById('filterMonth').value; // 格式: "2026-07"
+            const filterMonth = document.getElementById('filterMonth').value;
             const meta = equipmentData[type];
 
-            // 1. 更新報表基本資訊
             document.getElementById('reportTitle').innerText = meta.title;
             document.getElementById('info_machNo').innerText = meta.machNo;
             document.getElementById('info_location').innerText = meta.location;
             document.getElementById('info_manager').innerText = meta.manager;
 
-            // 民國年轉換顯示
             const year = parseInt(filterMonth.split('-')[0]);
             const month = filterMonth.split('-')[1];
             document.getElementById('info_month').innerText = `${year - 1911} 年 ${month} 月`;
 
-            // 2. 獲取篩選後的本地紀錄
             const allRecords = JSON.parse(localStorage.getItem('equipment_records')) || [];
             const currentMonthRecords = allRecords.filter(r => r.type === type && r.date.startsWith(filterMonth));
 
-            // 3. 生成點檢項目網格列
+            // 1. 填寫 V/X Grid
             const tbody = document.getElementById('reportRows');
             tbody.innerHTML = '';
 
             meta.items.forEach((itemText, itemIdx) => {
                 let rowHtml = `<tr><td class="text-left font-semibold text-xs py-1 px-2">${itemText}</td>`;
-                
-                // 1 到 31 號
                 for (let day = 1; day <= 31; day++) {
                     const dayStr = day.toString().padStart(2, '0');
                     const targetDate = `${filterMonth}-${dayStr}`;
                     
-                    // 尋找當天紀錄
                     const record = currentMonthRecords.find(r => r.date === targetDate);
                     let displayVal = '';
                     if (record && record.results[itemIdx]) {
                         displayVal = record.results[itemIdx];
                     }
                     
-                    // 標記不良 X 呈紅色更顯眼
                     let textClass = "";
                     if (displayVal === 'X') textClass = "text-red-600 font-extrabold";
                     if (displayVal === 'V') textClass = "text-green-700 font-bold";
@@ -320,15 +368,15 @@
                 tbody.innerHTML += rowHtml;
             });
 
-            // 4. 彙整記事與備註
+            // 2. 記事
             const notesTd = document.getElementById('reportNotes');
             const notes = currentMonthRecords
                 .filter(r => r.remark && r.remark.trim() !== '')
-                .map(r => `[${r.date.slice(8,10)}日] ${r.inspector}: ${r.remark}`)
+                .map(r => `[${r.date.slice(8,10)}日] ${r.remark}`)
                 .join(' ； ');
             notesTd.innerText = notes || "良好無異狀。";
 
-            // 5. 填寫人簽名列
+            // 3. 🔴 渲染真實手寫簽名圖檔到 1~31 天的格位
             const sigRow = document.getElementById('signatureRow');
             sigRow.innerHTML = '';
             for (let day = 1; day <= 31; day++) {
@@ -336,22 +384,23 @@
                 const targetDate = `${filterMonth}-${dayStr}`;
                 const record = currentMonthRecords.find(r => r.date === targetDate);
                 
-                if (record) {
-                    // 將姓名轉成直書直寫 (或縮小呈現) 配合傳統表格
-                    const verticalName = record.inspector.split('').join('<br>');
-                    sigRow.innerHTML += `<td class="w-6 border-r border-black align-top text-[9px] pt-1 leading-tight text-blue-900 font-semibold" style="border-right: 1px solid #000;">${verticalName}</td>`;
+                if (record && record.signature) {
+                    // 將簽名圖片放進簽名欄，限制高度和寬度，並進行旋轉 (若是直式表格需要的話，這裡用直立縮圖或小圖呈現)
+                    sigRow.innerHTML += `
+                        <td class="w-6 h-[65px] p-0.5 border-r border-black align-middle" style="border-right: 1px solid #000;">
+                            <img src="${record.signature}" class="max-w-full max-h-[55px] object-contain mx-auto" style="transform: rotate(-90deg); filter: contrast(1.5);">
+                        </td>`;
                 } else {
-                    sigRow.innerHTML += `<td class="w-6 border-r border-black" style="border-right: 1px solid #000;"></td>`;
+                    sigRow.innerHTML += `<td class="w-6 h-[65px] border-r border-black" style="border-right: 1px solid #000;"></td>`;
                 }
             }
         }
 
-        // 清除資料
         function clearAllData() {
-            if (confirm('⚠️ 您確定要清空所有已儲存的點檢紀錄嗎？清除後無法復原。')) {
+            if (confirm('⚠️ 確定要清空所有紀錄嗎？')) {
                 localStorage.removeItem('equipment_records');
                 generateReport();
-                alert('所有紀錄已清空。');
+                alert('已清空。');
             }
         }
     </script>

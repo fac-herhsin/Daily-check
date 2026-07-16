@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>設備日常檢點系統 (全螢幕簽名版)</title>
+    <title>設備日常檢點系統 (大字體全螢幕簽名版)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @media print {
@@ -38,7 +38,7 @@
 <body class="bg-gray-50 text-gray-800 p-6">
 
     <div class="max-w-7xl mx-auto no-print">
-        <h1 class="text-3xl font-bold mb-6 text-blue-900 text-center">⚙️ 設備日常點檢系統 (全螢幕簽名版)</h1>
+        <h1 class="text-3xl font-bold mb-6 text-blue-900 text-center">⚙️ 設備日常點檢系統 (大字體簽名優化版)</h1>
         
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
             <div class="bg-white p-6 rounded-lg shadow-md lg:col-span-1 border border-gray-200">
@@ -108,9 +108,9 @@
                 </div>
 
                 <div class="bg-yellow-50 border-l-4 border-yellow-500 p-4 text-sm text-yellow-900 rounded mb-4">
-                    <strong>🛡️ 體驗優化說明：</strong><br>
-                    1. <strong>全螢幕簽名板</strong>：點擊橘色按鈕即可彈出如物流簽名般的全螢幕書寫視窗，手指寫大字最流暢。<br>
-                    2. <strong>自動轉為直立大簽名</strong>：儲存後，系統會自動在背景將橫式大筆跡逆時針轉 90 度，完美填入下表的狹窄格內，且完全純黑清晰，極好列印。
+                    <strong>🛡️ 體驗與大小優化：</strong><br>
+                    1. <strong>自動去白邊裁切</strong>：簽名存檔時，系統會自動在背景將沒有筆畫的空白背景切掉，把字體放大撐滿直式格子，確保清晰度。<br>
+                    2. <strong>筆畫大而清晰</strong>：即使同仁用大螢幕簽名，呈現於檢點表的結果也會是頂天立地的大字！
                 </div>
             </div>
         </div>
@@ -239,17 +239,14 @@
             mCanvas = document.getElementById('sig-modal-canvas');
             mCtx = mCanvas.getContext('2d');
             
-            // 當視窗大小改變或 Modal 打開時，需重新設定畫布實體分辨率，避免拉伸變形
             resizeCanvas();
             window.addEventListener('resize', resizeCanvas);
 
-            // 設定筆刷屬性
             mCtx.strokeStyle = "#000000"; // 純黑筆劃
-            mCtx.lineWidth = 4.5;         // 加粗筆跡，全螢幕書寫更渾厚
+            mCtx.lineWidth = 5.0;         // 加粗筆跡，全螢幕大字更飽滿
             mCtx.lineCap = "round";
             mCtx.lineJoin = "round";
 
-            // 計算精準縮放座標
             function getCoords(clientX, clientY) {
                 const rect = mCanvas.getBoundingClientRect();
                 const scaleX = mCanvas.width / rect.width;
@@ -275,7 +272,7 @@
                 mCtx.stroke();
             });
 
-            // 手機/平板端觸控事件 (完美鎖定不偏移、不滾動網頁)
+            // 手機/平板端觸控事件
             mCanvas.addEventListener("touchstart", (e) => {
                 mDrawing = true;
                 const touch = e.touches[0];
@@ -297,35 +294,28 @@
             }, { passive: false });
         }
 
-        // 調整畫布實體尺寸
         function resizeCanvas() {
             if (!mCanvas) return;
-            // 抓取畫布在網頁上 CSS 的實際渲染寬高
             const rect = mCanvas.getBoundingClientRect();
             if (rect.width > 0 && rect.height > 0) {
-                // 將畫布本身的內部解析度同步設為 CSS 像素大小（防止書寫比例偏離）
                 mCanvas.width = rect.width;
                 mCanvas.height = rect.height;
-                // 重設畫布屬性
                 mCtx.strokeStyle = "#000000";
-                mCtx.lineWidth = 4.5;
+                mCtx.lineWidth = 5.0;
                 mCtx.lineCap = "round";
                 mCtx.lineJoin = "round";
             }
         }
 
-        // 開啟全螢幕簽名視窗
         function openSignatureModal() {
             const modal = document.getElementById('sigModal');
             modal.classList.remove('hidden');
-            // 彈出視窗後，重設畫布寬高以配合螢幕
             setTimeout(() => {
                 resizeCanvas();
                 clearModalCanvas();
             }, 100);
         }
 
-        // 關閉全螢幕簽名視窗
         function closeSignatureModal() {
             document.getElementById('sigModal').classList.add('hidden');
         }
@@ -334,7 +324,6 @@
             mCtx.clearRect(0, 0, mCanvas.width, mCanvas.height);
         }
 
-        // 當同仁在大螢幕簽名完，點擊「確認簽名」
         function confirmSignature() {
             const blank = document.createElement('canvas');
             blank.width = mCanvas.width;
@@ -345,10 +334,7 @@
                 return;
             }
 
-            // 儲存原始橫式筆跡 (作為表單中的小預覽)
             tempSignatureBase64 = mCanvas.toDataURL();
-            
-            // 顯示預覽畫面
             document.getElementById('sig-preview-img').src = tempSignatureBase64;
             document.getElementById('sig-preview-container').classList.remove('hidden');
 
@@ -393,138 +379,4 @@
             generateReport();
         }
 
-        // 儲存資料（背景自動高畫質旋轉直立）
-        function saveRecord(e) {
-            e.preventDefault();
-            const type = document.getElementById('equipType').value;
-            const dateStr = document.getElementById('inspectDate').value;
-            const remark = document.getElementById('remark').value;
-            
-            if (!tempSignatureBase64) {
-                alert("⚠️ 請先點擊按鈕「開啟全螢幕手寫簽名」進行簽核！");
-                return;
-            }
-
-            // 建立後台 Canvas 將大圖簽名旋轉 90 度存入資料庫
-            const img = new Image();
-            img.src = tempSignatureBase64;
-            img.onload = function() {
-                const offscreenCanvas = document.createElement('canvas');
-                // 直向旋轉後：原本的寬變成高，高變成寬
-                offscreenCanvas.width = img.height;
-                offscreenCanvas.height = img.width;
-                const oCtx = offscreenCanvas.getContext('2d');
-
-                oCtx.translate(offscreenCanvas.width / 2, offscreenCanvas.height / 2);
-                oCtx.rotate(-90 * Math.PI / 180); // 旋轉為直向
-                oCtx.drawImage(img, -img.width / 2, -img.height / 2);
-
-                const rotatedSignature = offscreenCanvas.toDataURL();
-
-                const items = equipmentData[type].items;
-                const results = [];
-
-                items.forEach((_, index) => {
-                    const radio = document.querySelector(`input[name="item_${index}"]:checked`);
-                    results.push(radio ? radio.value : 'V');
-                });
-
-                let allRecords = JSON.parse(localStorage.getItem('equipment_records')) || [];
-                allRecords = allRecords.filter(r => !(r.type === type && r.date === dateStr));
-                allRecords.push({
-                    type,
-                    date: dateStr,
-                    results,
-                    remark,
-                    signature: rotatedSignature // 儲存直向純黑大簽名
-                });
-
-                localStorage.setItem('equipment_records', JSON.stringify(allRecords));
-                alert('🎉 點檢紀錄與大字手寫簽名儲存成功！');
-                
-                // 重置暫存與隱藏預覽
-                tempSignatureBase64 = "";
-                document.getElementById('sig-preview-container').classList.add('hidden');
-                document.getElementById('remark').value = '';
-                generateReport();
-            };
-        }
-
-        // 渲染月報表
-        function generateReport() {
-            const type = document.getElementById('equipType').value;
-            const filterMonth = document.getElementById('filterMonth').value;
-            const meta = equipmentData[type];
-
-            document.getElementById('reportTitle').innerText = meta.title;
-            document.getElementById('info_machNo').innerText = meta.machNo;
-            document.getElementById('info_location').innerText = meta.location;
-            document.getElementById('info_manager').innerText = meta.manager;
-
-            const year = parseInt(filterMonth.split('-')[0]);
-            const month = filterMonth.split('-')[1];
-            document.getElementById('info_month').innerText = `${year - 1911} 年 ${month} 月`;
-
-            const allRecords = JSON.parse(localStorage.getItem('equipment_records')) || [];
-            const currentMonthRecords = allRecords.filter(r => r.type === type && r.date.startsWith(filterMonth));
-
-            // 1. 點檢格子結果 (純黑字體)
-            const tbody = document.getElementById('reportRows');
-            tbody.innerHTML = '';
-
-            meta.items.forEach((itemText, itemIdx) => {
-                let rowHtml = `<tr><td class="text-left font-bold text-xs py-1 px-2 text-black" style="border: 1.5px solid #000000;">${itemText}</td>`;
-                for (let day = 1; day <= 31; day++) {
-                    const dayStr = day.toString().padStart(2, '0');
-                    const targetDate = `${filterMonth}-${dayStr}`;
-                    
-                    const record = currentMonthRecords.find(r => r.date === targetDate);
-                    let displayVal = '';
-                    if (record && record.results[itemIdx]) {
-                        displayVal = record.results[itemIdx];
-                    }
-                    
-                    let textClass = "text-black font-black text-xs";
-                    rowHtml += `<td class="w-6 text-center ${textClass}" style="border: 1.5px solid #000000;">${displayVal}</td>`;
-                }
-                rowHtml += '</tr>';
-                tbody.innerHTML += rowHtml;
-            });
-
-            // 2. 記事 (純黑字體)
-            const notesTd = document.getElementById('reportNotes');
-            const notes = currentMonthRecords
-                .filter(r => r.remark && r.remark.trim() !== '')
-                .map(r => `[${r.date.slice(8,10)}日] ${r.remark}`)
-                .join(' ； ');
-            notesTd.innerText = notes || "良好無異狀。";
-
-            // 3. 渲染直式放大手寫簽名
-            const sigRow = document.getElementById('signatureRow');
-            sigRow.innerHTML = '';
-            for (let day = 1; day <= 31; day++) {
-                const dayStr = day.toString().padStart(2, '0');
-                const targetDate = `${filterMonth}-${dayStr}`;
-                const record = currentMonthRecords.find(r => r.date === targetDate);
-                
-                if (record && record.signature) {
-                    sigRow.innerHTML += `
-                        <td class="w-6 h-[120px] p-0 align-middle" style="border: 1.5px solid #000000; overflow: hidden; background-color: #ffffff;">
-                            <img src="${record.signature}" class="w-full h-full object-contain mx-auto" style="filter: contrast(2.5) brightness(0.5); display: block;">
-                        </td>`;
-                } else {
-                    sigRow.innerHTML += `<td class="w-6 h-[120px]" style="border: 1.5px solid #000000;"></td>`;
-                }
-            }
-        }
-
-        function clearAllData() {
-            if (confirm('⚠️ 確定要清空所有紀錄嗎？')) {
-                localStorage.removeItem('equipment_records');
-                generateReport();
-                alert('已清空。');
-            }
-        }
-    </script>
-</body>
-</html>
+        // 自動去白邊裁切 +

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>設備日常檢點系統 (純黑高清晰簽名版)</title>
+    <title>設備日常檢點系統 (全螢幕簽名版)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @media print {
@@ -25,19 +25,20 @@
             font-size: 11px;
             color: #000000; /* 純黑字體 */
         }
-        /* 手寫畫布樣式 */
-        #sig-canvas {
+        
+        /* 全螢幕彈出簽名板樣式 */
+        #sig-modal-canvas {
             border: 2px dashed #000000;
-            background-color: #f8fafc;
+            background-color: #ffffff;
             cursor: crosshair;
-            touch-action: none; /* 防止手機瀏覽器在畫圖時產生畫面捲動 */
+            touch-action: none; /* 徹底鎖定手機滾動 */
         }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-800 p-6">
 
     <div class="max-w-7xl mx-auto no-print">
-        <h1 class="text-3xl font-bold mb-6 text-blue-900 text-center">⚙️ 設備日常點檢系統 (純黑高清晰簽名版)</h1>
+        <h1 class="text-3xl font-bold mb-6 text-blue-900 text-center">⚙️ 設備日常點檢系統 (全螢幕簽名版)</h1>
         
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
             <div class="bg-white p-6 rounded-lg shadow-md lg:col-span-1 border border-gray-200">
@@ -69,13 +70,16 @@
 
                     <div class="mb-6">
                         <label class="block text-sm font-semibold text-gray-800 mb-1">✍️ 檢點人員手寫簽名</label>
-                        <div class="relative">
-                            <canvas id="sig-canvas" width="300" height="150" class="w-full rounded"></canvas>
-                            <button type="button" onclick="clearCanvas()" class="absolute bottom-2 right-2 bg-gray-600 hover:bg-gray-700 text-white text-xs px-2 py-1 rounded">
-                                重簽
-                            </button>
+                        
+                        <button type="button" onclick="openSignatureModal()" class="w-full py-3 px-4 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-lg shadow flex items-center justify-center gap-2 transition mb-2">
+                            <span>📝 點擊此處「開啟全螢幕手寫簽名」</span>
+                        </button>
+
+                        <div id="sig-preview-container" class="hidden border border-gray-300 rounded p-2 bg-gray-50 flex flex-col items-center">
+                            <p class="text-xs text-green-700 font-bold mb-1">✓ 已完成手寫簽名（預覽如下）：</p>
+                            <img id="sig-preview-img" class="max-h-20 border bg-white object-contain" src="">
+                            <button type="button" onclick="openSignatureModal()" class="text-xs text-blue-600 underline mt-1">重新簽名</button>
                         </div>
-                        <p class="text-[11px] text-gray-500 mt-1">※ 請在上方框內大字簽名（支援手機與平板手指觸控）。</p>
                     </div>
 
                     <button type="submit" class="w-full bg-blue-800 hover:bg-blue-900 text-white font-bold py-2 px-4 rounded transition">
@@ -104,9 +108,9 @@
                 </div>
 
                 <div class="bg-yellow-50 border-l-4 border-yellow-500 p-4 text-sm text-yellow-900 rounded mb-4">
-                    <strong>🛡️ 勞動檢查合規優化：</strong><br>
-                    1. <strong>已修正簽名偏移與直式排版</strong>：系統已採用後台影像旋轉技術，您在左側橫寫，下表會自動生成<strong>完美的直式純黑簽名檔</strong>。<br>
-                    2. <strong>筆跡粗黑清晰</strong>：簽名線條已加粗，更像真實簽字筆筆跡，方便勞檢員核對。
+                    <strong>🛡️ 體驗優化說明：</strong><br>
+                    1. <strong>全螢幕簽名板</strong>：點擊橘色按鈕即可彈出如物流簽名般的全螢幕書寫視窗，手指寫大字最流暢。<br>
+                    2. <strong>自動轉為直立大簽名</strong>：儲存後，系統會自動在背景將橫式大筆跡逆時針轉 90 度，完美填入下表的狹窄格內，且完全純黑清晰，極好列印。
                 </div>
             </div>
         </div>
@@ -157,6 +161,31 @@
         </div>
     </div>
 
+    <div id="sigModal" class="fixed inset-0 bg-black bg-opacity-70 z-50 flex flex-col justify-between p-4 hidden no-print">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-lg mx-auto overflow-hidden flex flex-col h-[90vh]">
+            <div class="bg-gray-100 p-3 border-b flex justify-between items-center">
+                <span class="font-bold text-gray-800">✍️ 檢點同仁手寫簽名</span>
+                <button type="button" onclick="closeSignatureModal()" class="text-gray-500 hover:text-gray-700 text-xl font-bold">✕</button>
+            </div>
+            
+            <div class="flex-1 bg-gray-50 p-4 flex items-center justify-center relative">
+                <canvas id="sig-modal-canvas" class="w-full h-full rounded shadow-inner"></canvas>
+                <div class="absolute top-6 left-6 pointer-events-none text-gray-400 text-sm select-none">
+                    請在此大字橫寫簽名...
+                </div>
+            </div>
+
+            <div class="bg-gray-100 p-3 border-t flex gap-3">
+                <button type="button" onclick="clearModalCanvas()" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-bold py-3 rounded">
+                    重畫
+                </button>
+                <button type="button" onclick="confirmSignature()" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded text-lg">
+                    確認簽名
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script>
         const equipmentData = {
             crane: {
@@ -190,89 +219,140 @@
             }
         };
 
-        let canvas, ctx;
-        let drawing = false;
+        let mCanvas, mCtx;
+        let mDrawing = false;
+        let tempSignatureBase64 = ""; // 儲存暫時簽名 (橫向原始筆跡)
 
         window.onload = function() {
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('inspectDate').value = today;
             document.getElementById('filterMonth').value = today.slice(0, 7);
 
-            initCanvas();
+            initModalCanvas();
             buildDayHeader();
             loadQuestions();
             generateReport();
         };
 
-        // 初始化手寫簽名板（修正手機觸控偏移版）
-        function initCanvas() {
-            canvas = document.getElementById('sig-canvas');
-            ctx = canvas.getContext('2d');
-            ctx.strokeStyle = "#000000"; // 純黑筆跡
-            ctx.lineWidth = 4.0;         // 筆劃加粗，確保高清晰
-            ctx.lineCap = "round";
-            ctx.lineJoin = "round";
+        // 初始化彈出視窗內的大畫布
+        function initModalCanvas() {
+            mCanvas = document.getElementById('sig-modal-canvas');
+            mCtx = mCanvas.getContext('2d');
+            
+            // 當視窗大小改變或 Modal 打開時，需重新設定畫布實體分辨率，避免拉伸變形
+            resizeCanvas();
+            window.addEventListener('resize', resizeCanvas);
 
-            // 輔助函數：取得考慮到 CSS 縮放後的正確 Canvas 座標
-            function getCanvasCoordinates(clientX, clientY) {
-                const rect = canvas.getBoundingClientRect();
-                // 核心修正：計算「實際畫布尺寸」與「CSS 顯示尺寸」的比例
-                const scaleX = canvas.width / rect.width;
-                const scaleY = canvas.height / rect.height;
-                
+            // 設定筆刷屬性
+            mCtx.strokeStyle = "#000000"; // 純黑筆劃
+            mCtx.lineWidth = 4.5;         // 加粗筆跡，全螢幕書寫更渾厚
+            mCtx.lineCap = "round";
+            mCtx.lineJoin = "round";
+
+            // 計算精準縮放座標
+            function getCoords(clientX, clientY) {
+                const rect = mCanvas.getBoundingClientRect();
+                const scaleX = mCanvas.width / rect.width;
+                const scaleY = mCanvas.height / rect.height;
                 return {
                     x: (clientX - rect.left) * scaleX,
                     y: (clientY - rect.top) * scaleY
                 };
             }
 
-            // ================= 滑鼠事件 (PC 端) =================
-            canvas.addEventListener("mousedown", (e) => {
-                drawing = true;
-                const pos = getCanvasCoordinates(e.clientX, e.clientY);
-                ctx.beginPath();
-                ctx.moveTo(pos.x, pos.y);
+            // PC 端滑鼠事件
+            mCanvas.addEventListener("mousedown", (e) => {
+                mDrawing = true;
+                const pos = getCoords(e.clientX, e.clientY);
+                mCtx.beginPath();
+                mCtx.moveTo(pos.x, pos.y);
+            });
+            mCanvas.addEventListener("mouseup", () => { mDrawing = false; mCtx.beginPath(); });
+            mCanvas.addEventListener("mousemove", (e) => {
+                if (!mDrawing) return;
+                const pos = getCoords(e.clientX, e.clientY);
+                mCtx.lineTo(pos.x, pos.y);
+                mCtx.stroke();
             });
 
-            canvas.addEventListener("mouseup", () => {
-                drawing = false;
-                ctx.beginPath();
-            });
-
-            canvas.addEventListener("mousemove", (e) => {
-                if (!drawing) return;
-                const pos = getCanvasCoordinates(e.clientX, e.clientY);
-                ctx.lineTo(pos.x, pos.y);
-                ctx.stroke();
-            });
-
-            // ================= 觸控事件 (手機/平板端) =================
-            canvas.addEventListener("touchstart", (e) => {
-                drawing = true;
+            // 手機/平板端觸控事件 (完美鎖定不偏移、不滾動網頁)
+            mCanvas.addEventListener("touchstart", (e) => {
+                mDrawing = true;
                 const touch = e.touches[0];
-                const pos = getCanvasCoordinates(touch.clientX, touch.clientY);
-                ctx.beginPath();
-                ctx.moveTo(pos.x, pos.y);
-                e.preventDefault(); // 防止手機畫面跟著滾動
+                const pos = getCoords(touch.clientX, touch.clientY);
+                mCtx.beginPath();
+                mCtx.moveTo(pos.x, pos.y);
+                e.preventDefault();
             }, { passive: false });
-
-            canvas.addEventListener("touchend", () => {
-                drawing = false;
-                ctx.beginPath();
-            });
-
-            canvas.addEventListener("touchmove", (e) => {
-                if (!drawing) return;
+            
+            mCanvas.addEventListener("touchend", () => { mDrawing = false; mCtx.beginPath(); });
+            
+            mCanvas.addEventListener("touchmove", (e) => {
+                if (!mDrawing) return;
                 const touch = e.touches[0];
-                const pos = getCanvasCoordinates(touch.clientX, touch.clientY);
-                ctx.lineTo(pos.x, pos.y);
-                ctx.stroke();
-                e.preventDefault(); // 防止手機畫面跟著滾動
+                const pos = getCoords(touch.clientX, touch.clientY);
+                mCtx.lineTo(pos.x, pos.y);
+                mCtx.stroke();
+                e.preventDefault();
             }, { passive: false });
         }
 
-        function clearCanvas() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        // 調整畫布實體尺寸
+        function resizeCanvas() {
+            if (!mCanvas) return;
+            // 抓取畫布在網頁上 CSS 的實際渲染寬高
+            const rect = mCanvas.getBoundingClientRect();
+            if (rect.width > 0 && rect.height > 0) {
+                // 將畫布本身的內部解析度同步設為 CSS 像素大小（防止書寫比例偏離）
+                mCanvas.width = rect.width;
+                mCanvas.height = rect.height;
+                // 重設畫布屬性
+                mCtx.strokeStyle = "#000000";
+                mCtx.lineWidth = 4.5;
+                mCtx.lineCap = "round";
+                mCtx.lineJoin = "round";
+            }
+        }
+
+        // 開啟全螢幕簽名視窗
+        function openSignatureModal() {
+            const modal = document.getElementById('sigModal');
+            modal.classList.remove('hidden');
+            // 彈出視窗後，重設畫布寬高以配合螢幕
+            setTimeout(() => {
+                resizeCanvas();
+                clearModalCanvas();
+            }, 100);
+        }
+
+        // 關閉全螢幕簽名視窗
+        function closeSignatureModal() {
+            document.getElementById('sigModal').classList.add('hidden');
+        }
+
+        function clearModalCanvas() {
+            mCtx.clearRect(0, 0, mCanvas.width, mCanvas.height);
+        }
+
+        // 當同仁在大螢幕簽名完，點擊「確認簽名」
+        function confirmSignature() {
+            const blank = document.createElement('canvas');
+            blank.width = mCanvas.width;
+            blank.height = mCanvas.height;
+            
+            if (mCanvas.toDataURL() === blank.toDataURL()) {
+                alert("⚠️ 您尚未進行手寫簽名，請簽名後再按確認！");
+                return;
+            }
+
+            // 儲存原始橫式筆跡 (作為表單中的小預覽)
+            tempSignatureBase64 = mCanvas.toDataURL();
+            
+            // 顯示預覽畫面
+            document.getElementById('sig-preview-img').src = tempSignatureBase64;
+            document.getElementById('sig-preview-container').classList.remove('hidden');
+
+            closeSignatureModal();
         }
 
         function buildDayHeader() {
@@ -313,61 +393,61 @@
             generateReport();
         }
 
-        // 核心修正：在儲存時，利用「後台 Canvas」將橫簽轉換為直立純黑大簽名
+        // 儲存資料（背景自動高畫質旋轉直立）
         function saveRecord(e) {
             e.preventDefault();
             const type = document.getElementById('equipType').value;
             const dateStr = document.getElementById('inspectDate').value;
             const remark = document.getElementById('remark').value;
             
-            // 檢查畫布是否空白
-            const blank = document.createElement('canvas');
-            blank.width = canvas.width;
-            blank.height = canvas.height;
-            if (canvas.toDataURL() === blank.toDataURL()) {
-                alert("⚠️ 請先在簽名區域手寫簽名，才能儲存點檢表！");
+            if (!tempSignatureBase64) {
+                alert("⚠️ 請先點擊按鈕「開啟全螢幕手寫簽名」進行簽核！");
                 return;
             }
 
-            // 建立後台 Canvas 進行 90 度旋轉
-            const offscreenCanvas = document.createElement('canvas');
-            // 旋轉後，原本的寬度變成高度，高度變成寬度
-            offscreenCanvas.width = canvas.height;
-            offscreenCanvas.height = canvas.width;
-            const oCtx = offscreenCanvas.getContext('2d');
+            // 建立後台 Canvas 將大圖簽名旋轉 90 度存入資料庫
+            const img = new Image();
+            img.src = tempSignatureBase64;
+            img.onload = function() {
+                const offscreenCanvas = document.createElement('canvas');
+                // 直向旋轉後：原本的寬變成高，高變成寬
+                offscreenCanvas.width = img.height;
+                offscreenCanvas.height = img.width;
+                const oCtx = offscreenCanvas.getContext('2d');
 
-            // 旋轉並畫上原本的筆跡
-            oCtx.translate(offscreenCanvas.width / 2, offscreenCanvas.height / 2);
-            oCtx.rotate(-90 * Math.PI / 180); // 逆時針旋轉 90 度變成直向
-            oCtx.drawImage(canvas, -canvas.width / 2, -canvas.height / 2);
+                oCtx.translate(offscreenCanvas.width / 2, offscreenCanvas.height / 2);
+                oCtx.rotate(-90 * Math.PI / 180); // 旋轉為直向
+                oCtx.drawImage(img, -img.width / 2, -img.height / 2);
 
-            // 儲存旋轉後的直立純黑 Base64 簽名圖檔
-            const rotatedSignature = offscreenCanvas.toDataURL();
+                const rotatedSignature = offscreenCanvas.toDataURL();
 
-            const items = equipmentData[type].items;
-            const results = [];
+                const items = equipmentData[type].items;
+                const results = [];
 
-            items.forEach((_, index) => {
-                const radio = document.querySelector(`input[name="item_${index}"]:checked`);
-                results.push(radio ? radio.value : 'V');
-            });
+                items.forEach((_, index) => {
+                    const radio = document.querySelector(`input[name="item_${index}"]:checked`);
+                    results.push(radio ? radio.value : 'V');
+                });
 
-            let allRecords = JSON.parse(localStorage.getItem('equipment_records')) || [];
-            allRecords = allRecords.filter(r => !(r.type === type && r.date === dateStr));
-            allRecords.push({
-                type,
-                date: dateStr,
-                results,
-                remark,
-                signature: rotatedSignature // 儲存完美旋轉直立大簽名
-            });
+                let allRecords = JSON.parse(localStorage.getItem('equipment_records')) || [];
+                allRecords = allRecords.filter(r => !(r.type === type && r.date === dateStr));
+                allRecords.push({
+                    type,
+                    date: dateStr,
+                    results,
+                    remark,
+                    signature: rotatedSignature // 儲存直向純黑大簽名
+                });
 
-            localStorage.setItem('equipment_records', JSON.stringify(allRecords));
-            alert('🎉 點檢紀錄儲存成功！直式簽名已綁定！');
-            
-            clearCanvas();
-            document.getElementById('remark').value = '';
-            generateReport();
+                localStorage.setItem('equipment_records', JSON.stringify(allRecords));
+                alert('🎉 點檢紀錄與大字手寫簽名儲存成功！');
+                
+                // 重置暫存與隱藏預覽
+                tempSignatureBase64 = "";
+                document.getElementById('sig-preview-container').classList.add('hidden');
+                document.getElementById('remark').value = '';
+                generateReport();
+            };
         }
 
         // 渲染月報表
@@ -428,7 +508,6 @@
                 const record = currentMonthRecords.find(r => r.date === targetDate);
                 
                 if (record && record.signature) {
-                    // 高對比度濾鏡 (filter: contrast(2.5) brightness(0.5)) 確保轉印與掃描純黑無瑕疵
                     sigRow.innerHTML += `
                         <td class="w-6 h-[120px] p-0 align-middle" style="border: 1.5px solid #000000; overflow: hidden; background-color: #ffffff;">
                             <img src="${record.signature}" class="w-full h-full object-contain mx-auto" style="filter: contrast(2.5) brightness(0.5); display: block;">

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>設備日常檢點系統 (高解析防糊版)</title>
+    <title>設備日常檢點系統 (橫式大字清晰版)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @media print {
@@ -34,7 +34,7 @@
 <body class="bg-gray-50 text-gray-800 p-6">
 
     <div class="max-w-7xl mx-auto no-print">
-        <h1 class="text-3xl font-bold mb-6 text-blue-900 text-center">⚙️ 設備日常點檢系統 (高解析不變形版)</h1>
+        <h1 class="text-3xl font-bold mb-6 text-blue-900 text-center">⚙️ 設備日常點檢系統 (橫式大字不旋轉版)</h1>
         
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
             <div class="bg-white p-6 rounded-lg shadow-md lg:col-span-1 border border-gray-200">
@@ -241,7 +241,7 @@
             mCanvas.width = rect.width;
             mCanvas.height = rect.height;
             mCtx.strokeStyle = "#000000";
-            mCtx.lineWidth = 4.5;
+            mCtx.lineWidth = 5; // 微調筆劃，確保更清晰
             mCtx.lineCap = "round";
             mCtx.lineJoin = "round";
         }
@@ -287,8 +287,8 @@
             generateReport();
         }
 
-        // ⭐ 高解析度、防止拉伸變形去白邊算法
-        function cropAndRotateSignature(base64Str, callback) {
+        // ⭐ 改良：不旋轉，保留完美的橫式高解析裁切
+        function cropAndNormalizeSignature(base64Str, callback) {
             const img = new Image();
             img.src = base64Str;
             img.onload = function() {
@@ -316,34 +316,24 @@
 
                 if (!found) { minX = 0; maxX = img.width; minY = 0; maxY = img.height; }
 
-                const padding = 10;
+                const padding = 8;
                 minX = Math.max(0, minX - padding); minY = Math.max(0, minY - padding);
                 maxX = Math.min(img.width, maxX + padding); maxY = Math.min(img.height, maxY + padding);
 
                 const w = maxX - minX;
                 const h = maxY - minY;
 
-                // 核心改動：創建 3 倍高解析度畫布，防止邊緣模糊
+                // 建立 3 倍解析度畫布，不旋轉，直接切成高精細橫圖
                 const outCanvas = document.createElement('canvas');
-                const targetH = 120 * 3; 
-                const targetW = 24 * 3;
-                outCanvas.width = targetW;
-                outCanvas.height = targetH;
+                outCanvas.width = w * 3;
+                outCanvas.height = h * 3;
                 const oCtx = outCanvas.getContext('2d');
 
-                // 保持黑白銳利度設定
                 oCtx.imageSmoothingEnabled = true;
                 oCtx.imageSmoothingQuality = 'high';
+                oCtx.scale(3, 3); // 放大 3 倍渲染，確保字跡邊緣完全無毛邊
 
-                oCtx.translate(targetW / 2, targetH / 2);
-                oCtx.rotate(-90 * Math.PI / 180);
-
-                // 計算等比例縮放比率，絕對不強行捏扁拉伸
-                const scale = Math.min((targetH - 20) / w, (targetW - 6) / h);
-                const finalW = w * scale;
-                const finalH = h * scale;
-
-                oCtx.drawImage(img, minX, minY, w, h, -finalW / 2, -finalH / 2, finalW, finalH);
+                oCtx.drawImage(img, minX, minY, w, h, 0, 0, w, h);
                 callback(outCanvas.toDataURL('image/png'));
             };
         }
@@ -354,7 +344,7 @@
             const dateStr = document.getElementById('inspectDate').value;
             if (!tempSignatureBase64) { alert("⚠️ 請先完成手寫簽名！"); return; }
 
-            cropAndRotateSignature(tempSignatureBase64, function(finalRotatedSignature) {
+            cropAndNormalizeSignature(tempSignatureBase64, function(finalSignature) {
                 const results = [];
                 equipmentData[type].items.forEach((_, index) => {
                     const radio = document.querySelector(`input[name="item_${index}"]:checked`);
@@ -364,10 +354,10 @@
                 let allRecords = [];
                 try { const stored = localStorage.getItem('equipment_records'); if (stored) allRecords = JSON.parse(stored); } catch (e) {}
                 allRecords = allRecords.filter(r => !(r.type === type && r.date === dateStr));
-                allRecords.push({ type, date: dateStr, results, remark: document.getElementById('remark').value, signature: finalRotatedSignature });
+                allRecords.push({ type, date: dateStr, results, remark: document.getElementById('remark').value, signature: finalSignature });
                 
                 localStorage.setItem('equipment_records', JSON.stringify(allRecords));
-                alert('🎉 儲存成功！簽名已切換至高解析防糊模式！');
+                alert('🎉 儲存成功！簽名已切換為「高解析橫式大字」！');
                 document.getElementById('sig-preview-container').classList.add('hidden');
                 tempSignatureBase64 = "";
                 generateReport();
@@ -410,9 +400,12 @@
             for (let day = 1; day <= 31; day++) {
                 const rec = currentMonthRecords.find(r => parseInt(r.date.slice(8,10)) === day);
                 if (rec && rec.signature) {
+                    // ⭐ 這裡加入了 transform 讓橫式字跡在直立格子中展現大字
                     sigRow.innerHTML += `
-                        <td class="w-6 h-[120px] p-0 align-middle" style="border: 1.5px solid #000000; background: #ffffff;">
-                            <img src="${rec.signature}" class="w-full h-full mx-auto" style="object-fit: contain; filter: contrast(3) brightness(0.2); display: block;">
+                        <td class="w-6 h-[120px] p-0 align-middle overflow-hidden" style="border: 1.5px solid #000000; background: #ffffff;">
+                            <div class="w-full h-full flex items-center justify-center">
+                                <img src="${rec.signature}" class="max-w-[110px] max-h-[22px] rotate-90" style="object-fit: contain; filter: contrast(3) brightness(0.2); transform-origin: center;">
+                            </div>
                         </td>`;
                 } else {
                     sigRow.innerHTML += `<td class="w-6 h-[120px]" style="border: 1.5px solid #000000;"></td>`;

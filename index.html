@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>設備日常檢點系統</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* 列印專用樣式：列印時只保留報表區塊，隱藏輸入介面 */
+        @media print {
+            body { background: white; color: black; }
+            .no-print { display: none !important; }
+            .print-area { display: block !important; width: 100%; }
+            @page { size: landscape; margin: 1cm; }
+        }
+        /* 報表表格樣式 */
+        .report-table th, .report-table td {
+            border: 1px solid #000;
+            padding: 4px;
+            text-align: center;
+            font-size: 11px;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 p-6">
+
+    <div class="max-w-6xl mx-auto no-print">
+        <h1 class="text-3xl font-bold mb-6 text-blue-800 text-center">⚙️ 設備動態日常點檢系統</h1>
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div class="bg-white p-6 rounded-lg shadow-md md:col-span-1">
+                <h2 class="text-xl font-semibold mb-4 text-gray-700 border-b pb-2">📋 每日點檢登錄</h2>
+                <form id="inspectionForm" onsubmit="saveRecord(event)">
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-600 mb-1">選擇設備類型</label>
+                        <select id="equipType" class="w-full border p-2 rounded" onchange="loadQuestions()">
+                            <option value="crane">固定式起重機</option>
+                            <option value="forklift">堆高機 (測試動態用)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-600 mb-1">點檢日期</label>
+                        <input type="date" id="inspectDate" class="w-full border p-2 rounded" required>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-600 mb-1">檢點人員姓名</label>
+                        <input type="text" id="inspectorName" class="w-full border p-2 rounded" required placeholder="例如：吳政軒">
+                    </div>
+
+                    <div class="mb-6">
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">點檢項目結果</label>
+                        <div id="dynamicItems" class="space-y-4 max-h-96 overflow-y-auto pr-1">
+                            </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-600 mb-1">記事/異常說明</label>
+                        <textarea id="remark" class="w-full border p-2 rounded h-20" placeholder="若有異常請說明"></textarea>
+                    </div>
+
+                    <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition">
+                        儲存本日紀錄
+                    </button>
+                </form>
+            </div>
+
+            <div class="bg-white p-6 rounded-lg shadow-md md:col-span-2">
+                <h2 class="text-xl font-semibold mb-4 text-gray-700 border-b pb-2">📊 報表查詢與匯出</h2>
+                <div class="flex flex-wrap gap-4 mb-6">
+                    <div>
+                        <label class="block text-sm text-gray-500">查詢月份</label>
+                        <input type="month" id="filterMonth" class="border p-2 rounded" onchange="generateReport()">
+                    </div>
+                    <div class="flex items-end">
+                        <button onclick="window.print()" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition">
+                            🖨️ 預覽並列印 / 存為 PDF
+                        </button>
+                    </div>
+                    <div class="flex items-end">
+                        <button onclick="clearAllData()" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded text-sm transition">
+                            ⚠️ 清除所有歷史測試紀錄
+                        </button>
+                    </div>
+                </div>
+
+                <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-4 text-sm text-yellow-700">
+                    <strong>💡 使用說明：</strong><br>
+                    1. 在左側輸入日期、人員，勾選完畢後按「儲存」。<br>
+                    2. 本系統使用靜態 LocalStorage，資料儲存於您目前的瀏覽器中，不需網路即可運作。<br>
+                    3. 右側報表會即時同步左側填寫的結果，確認無誤後即可點選「預覽並列印」輸出乾淨的 PDF！
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="printReportArea" class="bg-white p-6 rounded shadow-lg max-w-7xl mx-auto print-area">
+        <div class="text-center mb-4">
+            <h1 class="text-2xl font-bold tracking-widest" id="reportTitle">固定式起重機日常檢點表</h1>
+        </div>
+
+        <div class="grid grid-cols-4 gap-2 text-sm mb-2 font-mono">
+            <div><strong>機械編號：</strong> <span id="info_machNo">AC011/AC020</span></div>
+            <div><strong>位置：</strong> <span id="info_location">第二棟北</span></div>
+            <div><strong>單位主管：</strong> <span class="border border-red-500 px-2 py-0.5 text-red-600 font-bold" id="info_manager">吳政軒</span></div>
+            <div><strong>檢查月份：</strong> <span id="info_month" class="underline">115 年 07 月</span></div>
+        </div>
+
+        <table class="w-full report-table font-sans">
+            <thead>
+                <tr class="bg-gray-100">
+                    <th rowspan="2" class="w-48 text-xs">檢點項目</th>
+                    <th colspan="31" class="text-xs py-0.5">檢點結果 (日期)</th>
+                </tr>
+                <tr class="bg-gray-100" id="dayHeader">
+                    </tr>
+            </thead>
+            <tbody id="reportRows">
+                </tbody>
+            <tfoot>
+                <tr>
+                    <td class="text-left font-bold text-xs" style="height: 60px; vertical-align: top;">8. 記事</td>
+                    <td colspan="31" class="text-left px-2 text-xs" id="reportNotes" style="vertical-align: top;">
+                        </td>
+                </tr>
+                <tr>
+                    <td class="font-bold text-xs" style="height: 60px;">檢點人員簽名</td>
+                    <td colspan="31" class="p-0">
+                        <table class="w-full h-full text-center table-fixed" style="border: none;">
+                            <tr id="signatureRow">
+                                </tr>
+                        </table>
+                    </td>
+                </tr>
+            </tfoot>
+        </table>
+
+        <div class="text-xs mt-3 text-gray-600 leading-relaxed font-sans">
+            1. 檢查結果，良好者打「V」，無該項者打「/」，不良者打「X」並在「記事」欄註明。<br>
+            2. 依據「職業安全衛生管理辦法」第五十二條規定，實施檢查時，如發現對勞工有危害之虞時，應即報告主管；如發現異常時，應立即檢修即採取必要措施。<br>
+            3. 紀錄依法保存三年。
+        </div>
+    </div>
+
+    <script>
+        // 1. 動態設備與題目資料庫設定
+        const equipmentData = {
+            crane: {
+                title: "固定式起重機日常檢點表",
+                machNo: "AC011/AC020",
+                location: "第二棟北",
+                manager: "吳政軒",
+                items: [
+                    "1. 過捲預防裝置動作狀況正常",
+                    "2. 走行警報裝置動作狀況正常 (遙控器操作者)",
+                    "3. 制動器及離合器動作正常",
+                    "4. 鋼索 (或吊鏈) 運行正常",
+                    "5. 吊鉤機能正常",
+                    "6. 控制裝置性能正常",
+                    "7. 直、橫行軌道正常"
+                ]
+            },
+            forklift: {
+                title: "堆高機每日安全點檢表",
+                machNo: "FL-008 / FL-009",
+                location: "第一棟成品倉庫",
+                manager: "吳政軒",
+                items: [
+                    "1. 制動液量及煞車效能正常",
+                    "2. 輪胎氣壓及磨損狀況正常",
+                    "3. 液壓油量及各油路有無漏油",
+                    "4. 貨叉及鏈條有無變形或損傷",
+                    "5. 方向燈、大燈及後照鏡正常",
+                    "6. 喇叭及倒車警報器功能正常"
+                ]
+            }
+        };
+
+        // 初始化設定
+        window.onload = function() {
+            // 預設日期為今天
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('inspectDate').value = today;
+            // 預設查詢月份為當月
+            document.getElementById('filterMonth').value = today.slice(0, 7);
+
+            buildDayHeader();
+            loadQuestions();
+            generateReport();
+        };
+
+        // 建立表格頭部 1~31 號
+        function buildDayHeader() {
+            const header = document.getElementById('dayHeader');
+            header.innerHTML = '';
+            for (let i = 1; i <= 31; i++) {
+                header.innerHTML += `<th class="w-6 text-[10px]">${i}</th>`;
+            }
+        }
+
+        // 根據選擇的設備，動態加載點檢題目至左側表單
+        function loadQuestions() {
+            const type = document.getElementById('equipType').value;
+            const items = equipmentData[type].items;
+            const container = document.getElementById('dynamicItems');
+            container.innerHTML = '';
+
+            items.forEach((item, index) => {
+                container.innerHTML += `
+                    <div class="p-2 border rounded bg-gray-50">
+                        <p class="text-sm font-semibold mb-1">${item}</p>
+                        <div class="flex gap-4">
+                            <label class="inline-flex items-center text-sm cursor-pointer">
+                                <input type="radio" name="item_${index}" value="V" class="form-radio text-green-600" checked>
+                                <span class="ml-1 text-green-700 font-bold">V 良好</span>
+                            </label>
+                            <label class="inline-flex items-center text-sm cursor-pointer">
+                                <input type="radio" name="item_${index}" value="/" class="form-radio text-blue-600">
+                                <span class="ml-1 text-blue-700 font-bold">/ 無此項</span>
+                            </label>
+                            <label class="inline-flex items-center text-sm cursor-pointer">
+                                <input type="radio" name="item_${index}" value="X" class="form-radio text-red-600">
+                                <span class="ml-1 text-red-700 font-bold">X 不良</span>
+                            </label>
+                        </div>
+                    </div>
+                `;
+            });
+            // 每次切換設備也自動更新右邊報表
+            generateReport();
+        }
+
+        // 儲存資料到 LocalStorage
+        function saveRecord(e) {
+            e.preventDefault();
+            const type = document.getElementById('equipType').value;
+            const dateStr = document.getElementById('inspectDate').value;
+            const inspector = document.getElementById('inspectorName').value;
+            const remark = document.getElementById('remark').value;
+            
+            const items = equipmentData[type].items;
+            const results = [];
+
+            // 取得每個項目的勾選結果
+            items.forEach((_, index) => {
+                const radio = document.querySelector(`input[name="item_${index}"]:checked`);
+                results.push(radio ? radio.value : 'V');
+            });
+
+            // 讀取現有紀錄
+            let allRecords = JSON.parse(localStorage.getItem('equipment_records')) || [];
+
+            // 檢查是否當天已有同設備的紀錄，有則覆蓋，無則新增
+            allRecords = allRecords.filter(r => !(r.type === type && r.date === dateStr));
+            allRecords.push({
+                type,
+                date: dateStr,
+                inspector,
+                results,
+                remark
+            });
+
+            localStorage.setItem('equipment_records', JSON.stringify(allRecords));
+            alert('🎉 點檢紀錄儲存成功！已自動更新下方報表。');
+            
+            // 清空備註，重新整理報表
+            document.getElementById('remark').value = '';
+            generateReport();
+        }
+
+        // 生成月度一覽報表
+        function generateReport() {
+            const type = document.getElementById('equipType').value;
+            const filterMonth = document.getElementById('filterMonth').value; // 格式: "2026-07"
+            const meta = equipmentData[type];
+
+            // 1. 更新報表基本資訊
+            document.getElementById('reportTitle').innerText = meta.title;
+            document.getElementById('info_machNo').innerText = meta.machNo;
+            document.getElementById('info_location').innerText = meta.location;
+            document.getElementById('info_manager').innerText = meta.manager;
+
+            // 民國年轉換顯示
+            const year = parseInt(filterMonth.split('-')[0]);
+            const month = filterMonth.split('-')[1];
+            document.getElementById('info_month').innerText = `${year - 1911} 年 ${month} 月`;
+
+            // 2. 獲取篩選後的本地紀錄
+            const allRecords = JSON.parse(localStorage.getItem('equipment_records')) || [];
+            const currentMonthRecords = allRecords.filter(r => r.type === type && r.date.startsWith(filterMonth));
+
+            // 3. 生成點檢項目網格列
+            const tbody = document.getElementById('reportRows');
+            tbody.innerHTML = '';
+
+            meta.items.forEach((itemText, itemIdx) => {
+                let rowHtml = `<tr><td class="text-left font-semibold text-xs py-1 px-2">${itemText}</td>`;
+                
+                // 1 到 31 號
+                for (let day = 1; day <= 31; day++) {
+                    const dayStr = day.toString().padStart(2, '0');
+                    const targetDate = `${filterMonth}-${dayStr}`;
+                    
+                    // 尋找當天紀錄
+                    const record = currentMonthRecords.find(r => r.date === targetDate);
+                    let displayVal = '';
+                    if (record && record.results[itemIdx]) {
+                        displayVal = record.results[itemIdx];
+                    }
+                    
+                    // 標記不良 X 呈紅色更顯眼
+                    let textClass = "";
+                    if (displayVal === 'X') textClass = "text-red-600 font-extrabold";
+                    if (displayVal === 'V') textClass = "text-green-700 font-bold";
+
+                    rowHtml += `<td class="w-6 text-center ${textClass}">${displayVal}</td>`;
+                }
+                rowHtml += '</tr>';
+                tbody.innerHTML += rowHtml;
+            });
+
+            // 4. 彙整記事與備註
+            const notesTd = document.getElementById('reportNotes');
+            const notes = currentMonthRecords
+                .filter(r => r.remark && r.remark.trim() !== '')
+                .map(r => `[${r.date.slice(8,10)}日] ${r.inspector}: ${r.remark}`)
+                .join(' ； ');
+            notesTd.innerText = notes || "良好無異狀。";
+
+            // 5. 填寫人簽名列
+            const sigRow = document.getElementById('signatureRow');
+            sigRow.innerHTML = '';
+            for (let day = 1; day <= 31; day++) {
+                const dayStr = day.toString().padStart(2, '0');
+                const targetDate = `${filterMonth}-${dayStr}`;
+                const record = currentMonthRecords.find(r => r.date === targetDate);
+                
+                if (record) {
+                    // 將姓名轉成直書直寫 (或縮小呈現) 配合傳統表格
+                    const verticalName = record.inspector.split('').join('<br>');
+                    sigRow.innerHTML += `<td class="w-6 border-r border-black align-top text-[9px] pt-1 leading-tight text-blue-900 font-semibold" style="border-right: 1px solid #000;">${verticalName}</td>`;
+                } else {
+                    sigRow.innerHTML += `<td class="w-6 border-r border-black" style="border-right: 1px solid #000;"></td>`;
+                }
+            }
+        }
+
+        // 清除資料
+        function clearAllData() {
+            if (confirm('⚠️ 您確定要清空所有已儲存的點檢紀錄嗎？清除後無法復原。')) {
+                localStorage.removeItem('equipment_records');
+                generateReport();
+                alert('所有紀錄已清空。');
+            }
+        }
+    </script>
+</body>
+</html>

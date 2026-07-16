@@ -70,4 +70,382 @@
                     <div class="mb-6">
                         <label class="block text-sm font-semibold text-gray-800 mb-1">✍️ 檢點人員手寫簽名</label>
                         <div class="relative">
-                            <canvas id="sig-canvas" width="30
+                            <canvas id="sig-canvas" width="300" height="150" class="w-full rounded"></canvas>
+                            <button type="button" onclick="clearCanvas()" class="absolute bottom-2 right-2 bg-gray-600 hover:bg-gray-700 text-white text-xs px-2 py-1 rounded">
+                                重簽
+                            </button>
+                        </div>
+                        <p class="text-[11px] text-gray-500 mt-1">※ 請在上方框內大字簽名（支援手機與平板手指觸控）。</p>
+                    </div>
+
+                    <button type="submit" class="w-full bg-blue-800 hover:bg-blue-900 text-white font-bold py-2 px-4 rounded transition">
+                        儲存今日紀錄並簽名
+                    </button>
+                </form>
+            </div>
+
+            <div class="bg-white p-6 rounded-lg shadow-md lg:col-span-2 border border-gray-200">
+                <h2 class="text-xl font-semibold mb-4 text-gray-800 border-b pb-2">📊 報表查詢與匯出</h2>
+                <div class="flex flex-wrap gap-4 mb-4">
+                    <div>
+                        <label class="block text-sm text-gray-600">查詢月份</label>
+                        <input type="month" id="filterMonth" class="border p-2 rounded" onchange="generateReport()">
+                    </div>
+                    <div class="flex items-end">
+                        <button onclick="window.print()" class="bg-green-700 hover:bg-green-800 text-white font-bold py-2 px-4 rounded transition">
+                            🖨️ 預覽並列印 / 存為 PDF
+                        </button>
+                    </div>
+                    <div class="flex items-end">
+                        <button onclick="clearAllData()" class="bg-red-600 hover:bg-red-700 text-white font-bold py-1 px-3 rounded text-xs transition">
+                            ⚠️ 清空測試紀錄
+                        </button>
+                    </div>
+                </div>
+
+                <div class="bg-yellow-50 border-l-4 border-yellow-500 p-4 text-sm text-yellow-900 rounded mb-4">
+                    <strong>🛡️ 勞動檢查合規優化：</strong><br>
+                    1. <strong>已修正簽名偏移與直式排版</strong>：系統已採用後台影像旋轉技術，您在左側橫寫，下表會自動生成<strong>完美的直式純黑簽名檔</strong>。<br>
+                    2. <strong>筆跡粗黑清晰</strong>：簽名線條已加粗，更像真實簽字筆筆跡，方便勞檢員核對。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="printReportArea" class="bg-white p-6 rounded shadow-lg max-w-7xl mx-auto print-area border border-black">
+        <div class="text-center mb-4">
+            <h1 class="text-2xl font-bold tracking-widest text-black" id="reportTitle">固定式起重機日常檢點表</h1>
+        </div>
+
+        <div class="grid grid-cols-4 gap-2 text-sm mb-2 font-mono text-black">
+            <div><strong>機械編號：</strong> <span id="info_machNo" class="font-bold">AC011/AC020</span></div>
+            <div><strong>位置：</strong> <span id="info_location" class="font-bold">第二棟北</span></div>
+            <div><strong>單位主管：</strong> <span class="border-2 border-black px-2 py-0.5 font-bold" id="info_manager">吳政軒</span></div>
+            <div><strong>檢查月份：</strong> <span id="info_month" class="underline font-bold">115 年 07 月</span></div>
+        </div>
+
+        <table class="w-full report-table font-sans">
+            <thead>
+                <tr class="bg-gray-100">
+                    <th rowspan="2" class="w-48 text-xs text-black font-bold">檢點項目</th>
+                    <th colspan="31" class="text-xs py-0.5 text-black font-bold">檢點結果 (日期)</th>
+                </tr>
+                <tr class="bg-gray-100" id="dayHeader"></tr>
+            </thead>
+            <tbody id="reportRows"></tbody>
+            <tfoot>
+                <tr>
+                    <td class="text-left font-bold text-xs text-black" style="height: 50px; vertical-align: top;">8. 記事</td>
+                    <td colspan="31" class="text-left px-2 text-xs text-black font-bold" id="reportNotes" style="vertical-align: top;"></td>
+                </tr>
+                <tr>
+                    <td class="font-bold text-xs text-black" style="height: 120px;">檢點人員簽名</td>
+                    <td colspan="31" class="p-0">
+                        <table class="w-full h-full text-center table-fixed" style="border: none; border-collapse: collapse;">
+                            <tr id="signatureRow" class="h-[120px]">
+                                </tr>
+                        </table>
+                    </td>
+                </tr>
+            </tfoot>
+        </table>
+
+        <div class="text-[10px] mt-3 text-black leading-relaxed font-sans font-medium">
+            1. 檢查結果，良好者打「V」，無該項者打「/」，不良者打「X」並在「記事」欄註明。<br>
+            2. 依據「職業安全衛生管理辦法」第五十二條規定，實施檢查時，如發現對勞工有危害之虞時，應即報告主管；如發現異常時，應立即檢修即採取必要措施。<br>
+            3. 紀錄依法保存三年。
+        </div>
+    </div>
+
+    <script>
+        const equipmentData = {
+            crane: {
+                title: "固定式起重機日常檢點表",
+                machNo: "AC011/AC020",
+                location: "第二棟北",
+                manager: "吳政軒",
+                items: [
+                    "1. 過捲預防裝置動作狀況正常",
+                    "2. 走行警報裝置動作狀況正常 (遙控器操作者)",
+                    "3. 制動器及離合器動作正常",
+                    "4. 鋼索 (或吊鏈) 運行正常",
+                    "5. 吊鉤機能正常",
+                    "6. 控制裝置性能正常",
+                    "7. 直、橫行軌道正常"
+                ]
+            },
+            forklift: {
+                title: "堆高機每日安全點檢表",
+                machNo: "FL-008 / FL-009",
+                location: "第一棟成品倉庫",
+                manager: "吳政軒",
+                items: [
+                    "1. 制動液量及煞車效能正常",
+                    "2. 輪胎氣壓及磨損狀況正常",
+                    "3. 液壓油量及各油路有無漏油",
+                    "4. 貨叉及鏈條有無變形或損傷",
+                    "5. 方向燈、大燈及後照鏡正常",
+                    "6. 喇叭及倒車警報器功能正常"
+                ]
+            }
+        };
+
+        let canvas, ctx;
+        let drawing = false;
+
+        window.onload = function() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('inspectDate').value = today;
+            document.getElementById('filterMonth').value = today.slice(0, 7);
+
+            initCanvas();
+            buildDayHeader();
+            loadQuestions();
+            generateReport();
+        };
+
+        // 初始化手寫簽名板（修正手機觸控偏移版）
+        function initCanvas() {
+            canvas = document.getElementById('sig-canvas');
+            ctx = canvas.getContext('2d');
+            ctx.strokeStyle = "#000000"; // 純黑筆跡
+            ctx.lineWidth = 4.0;         // 筆劃加粗，確保高清晰
+            ctx.lineCap = "round";
+            ctx.lineJoin = "round";
+
+            // 輔助函數：取得考慮到 CSS 縮放後的正確 Canvas 座標
+            function getCanvasCoordinates(clientX, clientY) {
+                const rect = canvas.getBoundingClientRect();
+                // 核心修正：計算「實際畫布尺寸」與「CSS 顯示尺寸」的比例
+                const scaleX = canvas.width / rect.width;
+                const scaleY = canvas.height / rect.height;
+                
+                return {
+                    x: (clientX - rect.left) * scaleX,
+                    y: (clientY - rect.top) * scaleY
+                };
+            }
+
+            // ================= 滑鼠事件 (PC 端) =================
+            canvas.addEventListener("mousedown", (e) => {
+                drawing = true;
+                const pos = getCanvasCoordinates(e.clientX, e.clientY);
+                ctx.beginPath();
+                ctx.moveTo(pos.x, pos.y);
+            });
+
+            canvas.addEventListener("mouseup", () => {
+                drawing = false;
+                ctx.beginPath();
+            });
+
+            canvas.addEventListener("mousemove", (e) => {
+                if (!drawing) return;
+                const pos = getCanvasCoordinates(e.clientX, e.clientY);
+                ctx.lineTo(pos.x, pos.y);
+                ctx.stroke();
+            });
+
+            // ================= 觸控事件 (手機/平板端) =================
+            canvas.addEventListener("touchstart", (e) => {
+                drawing = true;
+                const touch = e.touches[0];
+                const pos = getCanvasCoordinates(touch.clientX, touch.clientY);
+                ctx.beginPath();
+                ctx.moveTo(pos.x, pos.y);
+                e.preventDefault(); // 防止手機畫面跟著滾動
+            }, { passive: false });
+
+            canvas.addEventListener("touchend", () => {
+                drawing = false;
+                ctx.beginPath();
+            });
+
+            canvas.addEventListener("touchmove", (e) => {
+                if (!drawing) return;
+                const touch = e.touches[0];
+                const pos = getCanvasCoordinates(touch.clientX, touch.clientY);
+                ctx.lineTo(pos.x, pos.y);
+                ctx.stroke();
+                e.preventDefault(); // 防止手機畫面跟著滾動
+            }, { passive: false });
+        }
+
+        function clearCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+
+        function buildDayHeader() {
+            const header = document.getElementById('dayHeader');
+            header.innerHTML = '';
+            for (let i = 1; i <= 31; i++) {
+                header.innerHTML += `<th class="w-6 text-[10px] text-black font-bold" style="border: 1.5px solid #000000;">${i}</th>`;
+            }
+        }
+
+        function loadQuestions() {
+            const type = document.getElementById('equipType').value;
+            const items = equipmentData[type].items;
+            const container = document.getElementById('dynamicItems');
+            container.innerHTML = '';
+
+            items.forEach((item, index) => {
+                container.innerHTML += `
+                    <div class="p-2 border rounded bg-gray-50 border-gray-300">
+                        <p class="text-xs font-semibold mb-1 text-gray-800">${item}</p>
+                        <div class="flex gap-4">
+                            <label class="inline-flex items-center text-xs cursor-pointer">
+                                <input type="radio" name="item_${index}" value="V" class="form-radio text-black" checked>
+                                <span class="ml-1 text-black font-bold">V 良好</span>
+                            </label>
+                            <label class="inline-flex items-center text-xs cursor-pointer">
+                                <input type="radio" name="item_${index}" value="/" class="form-radio text-black">
+                                <span class="ml-1 text-black font-bold">/ 無</span>
+                            </label>
+                            <label class="inline-flex items-center text-xs cursor-pointer">
+                                <input type="radio" name="item_${index}" value="X" class="form-radio text-black">
+                                <span class="ml-1 text-black font-bold">X 不良</span>
+                            </label>
+                        </div>
+                    </div>
+                `;
+            });
+            generateReport();
+        }
+
+        // 核心修正：在儲存時，利用「後台 Canvas」將橫簽轉換為直立純黑大簽名
+        function saveRecord(e) {
+            e.preventDefault();
+            const type = document.getElementById('equipType').value;
+            const dateStr = document.getElementById('inspectDate').value;
+            const remark = document.getElementById('remark').value;
+            
+            // 檢查畫布是否空白
+            const blank = document.createElement('canvas');
+            blank.width = canvas.width;
+            blank.height = canvas.height;
+            if (canvas.toDataURL() === blank.toDataURL()) {
+                alert("⚠️ 請先在簽名區域手寫簽名，才能儲存點檢表！");
+                return;
+            }
+
+            // 建立後台 Canvas 進行 90 度旋轉
+            const offscreenCanvas = document.createElement('canvas');
+            // 旋轉後，原本的寬度變成高度，高度變成寬度
+            offscreenCanvas.width = canvas.height;
+            offscreenCanvas.height = canvas.width;
+            const oCtx = offscreenCanvas.getContext('2d');
+
+            // 旋轉並畫上原本的筆跡
+            oCtx.translate(offscreenCanvas.width / 2, offscreenCanvas.height / 2);
+            oCtx.rotate(-90 * Math.PI / 180); // 逆時針旋轉 90 度變成直向
+            oCtx.drawImage(canvas, -canvas.width / 2, -canvas.height / 2);
+
+            // 儲存旋轉後的直立純黑 Base64 簽名圖檔
+            const rotatedSignature = offscreenCanvas.toDataURL();
+
+            const items = equipmentData[type].items;
+            const results = [];
+
+            items.forEach((_, index) => {
+                const radio = document.querySelector(`input[name="item_${index}"]:checked`);
+                results.push(radio ? radio.value : 'V');
+            });
+
+            let allRecords = JSON.parse(localStorage.getItem('equipment_records')) || [];
+            allRecords = allRecords.filter(r => !(r.type === type && r.date === dateStr));
+            allRecords.push({
+                type,
+                date: dateStr,
+                results,
+                remark,
+                signature: rotatedSignature // 儲存完美旋轉直立大簽名
+            });
+
+            localStorage.setItem('equipment_records', JSON.stringify(allRecords));
+            alert('🎉 點檢紀錄儲存成功！直式簽名已綁定！');
+            
+            clearCanvas();
+            document.getElementById('remark').value = '';
+            generateReport();
+        }
+
+        // 渲染月報表
+        function generateReport() {
+            const type = document.getElementById('equipType').value;
+            const filterMonth = document.getElementById('filterMonth').value;
+            const meta = equipmentData[type];
+
+            document.getElementById('reportTitle').innerText = meta.title;
+            document.getElementById('info_machNo').innerText = meta.machNo;
+            document.getElementById('info_location').innerText = meta.location;
+            document.getElementById('info_manager').innerText = meta.manager;
+
+            const year = parseInt(filterMonth.split('-')[0]);
+            const month = filterMonth.split('-')[1];
+            document.getElementById('info_month').innerText = `${year - 1911} 年 ${month} 月`;
+
+            const allRecords = JSON.parse(localStorage.getItem('equipment_records')) || [];
+            const currentMonthRecords = allRecords.filter(r => r.type === type && r.date.startsWith(filterMonth));
+
+            // 1. 點檢格子結果 (純黑字體)
+            const tbody = document.getElementById('reportRows');
+            tbody.innerHTML = '';
+
+            meta.items.forEach((itemText, itemIdx) => {
+                let rowHtml = `<tr><td class="text-left font-bold text-xs py-1 px-2 text-black" style="border: 1.5px solid #000000;">${itemText}</td>`;
+                for (let day = 1; day <= 31; day++) {
+                    const dayStr = day.toString().padStart(2, '0');
+                    const targetDate = `${filterMonth}-${dayStr}`;
+                    
+                    const record = currentMonthRecords.find(r => r.date === targetDate);
+                    let displayVal = '';
+                    if (record && record.results[itemIdx]) {
+                        displayVal = record.results[itemIdx];
+                    }
+                    
+                    let textClass = "text-black font-black text-xs";
+                    rowHtml += `<td class="w-6 text-center ${textClass}" style="border: 1.5px solid #000000;">${displayVal}</td>`;
+                }
+                rowHtml += '</tr>';
+                tbody.innerHTML += rowHtml;
+            });
+
+            // 2. 記事 (純黑字體)
+            const notesTd = document.getElementById('reportNotes');
+            const notes = currentMonthRecords
+                .filter(r => r.remark && r.remark.trim() !== '')
+                .map(r => `[${r.date.slice(8,10)}日] ${r.remark}`)
+                .join(' ； ');
+            notesTd.innerText = notes || "良好無異狀。";
+
+            // 3. 渲染直式放大手寫簽名
+            const sigRow = document.getElementById('signatureRow');
+            sigRow.innerHTML = '';
+            for (let day = 1; day <= 31; day++) {
+                const dayStr = day.toString().padStart(2, '0');
+                const targetDate = `${filterMonth}-${dayStr}`;
+                const record = currentMonthRecords.find(r => r.date === targetDate);
+                
+                if (record && record.signature) {
+                    // 高對比度濾鏡 (filter: contrast(2.5) brightness(0.5)) 確保轉印與掃描純黑無瑕疵
+                    sigRow.innerHTML += `
+                        <td class="w-6 h-[120px] p-0 align-middle" style="border: 1.5px solid #000000; overflow: hidden; background-color: #ffffff;">
+                            <img src="${record.signature}" class="w-full h-full object-contain mx-auto" style="filter: contrast(2.5) brightness(0.5); display: block;">
+                        </td>`;
+                } else {
+                    sigRow.innerHTML += `<td class="w-6 h-[120px]" style="border: 1.5px solid #000000;"></td>`;
+                }
+            }
+        }
+
+        function clearAllData() {
+            if (confirm('⚠️ 確定要清空所有紀錄嗎？')) {
+                localStorage.removeItem('equipment_records');
+                generateReport();
+                alert('已清空。');
+            }
+        }
+    </script>
+</body>
+</html>

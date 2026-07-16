@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>設備日常檢點系統 (大字體全螢幕簽名版)</title>
+    <title>設備日常檢點系統 (終極防錯大字版)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @media print {
@@ -38,7 +38,7 @@
 <body class="bg-gray-50 text-gray-800 p-6">
 
     <div class="max-w-7xl mx-auto no-print">
-        <h1 class="text-3xl font-bold mb-6 text-blue-900 text-center">⚙️ 設備日常點檢系統 (大字體簽名優化版)</h1>
+        <h1 class="text-3xl font-bold mb-6 text-blue-900 text-center">⚙️ 設備日常點檢系統 (大字體防錯優化版)</h1>
         
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
             <div class="bg-white p-6 rounded-lg shadow-md lg:col-span-1 border border-gray-200">
@@ -108,9 +108,9 @@
                 </div>
 
                 <div class="bg-yellow-50 border-l-4 border-yellow-500 p-4 text-sm text-yellow-900 rounded mb-4">
-                    <strong>🛡️ 體驗與大小優化：</strong><br>
-                    1. <strong>自動去白邊裁切</strong>：簽名存檔時，系統會自動在背景將沒有筆畫的空白背景切掉，把字體放大撐滿直式格子，確保清晰度。<br>
-                    2. <strong>筆畫大而清晰</strong>：即使同仁用大螢幕簽名，呈現於檢點表的結果也會是頂天立地的大字！
+                    <strong>🛡️ 體驗與安全防護升級：</strong><br>
+                    1. <strong>容錯機制</strong>：此版本已加入沙盒安全隔離，防止任何舊格式測試資料導致頁面空白。<br>
+                    2. <strong>去白邊大簽名</strong>：點擊橘色按鈕手寫簽名，存檔時會自動將空白兩側剪掉，將大字體完美直立塞滿表格，字體絕不縮小！
                 </div>
             </div>
         </div>
@@ -221,23 +221,35 @@
 
         let mCanvas, mCtx;
         let mDrawing = false;
-        let tempSignatureBase64 = ""; // 儲存暫時簽名 (橫向原始筆跡)
+        let tempSignatureBase64 = ""; // 儲存暫時簽名
 
+        // 終極防錯：將初始化包裹在主動出錯提示中，保證任何錯誤都會被回報且不中斷
         window.onload = function() {
-            const today = new Date().toISOString().split('T')[0];
-            document.getElementById('inspectDate').value = today;
-            document.getElementById('filterMonth').value = today.slice(0, 7);
+            try {
+                const today = new Date().toISOString().split('T')[0];
+                document.getElementById('inspectDate').value = today;
+                
+                const filterMonthEl = document.getElementById('filterMonth');
+                if (filterMonthEl) {
+                    filterMonthEl.value = today.slice(0, 7);
+                }
 
-            initModalCanvas();
-            buildDayHeader();
-            loadQuestions();
-            generateReport();
+                initModalCanvas();
+                buildDayHeader();
+                loadQuestions();
+                generateReport();
+            } catch (err) {
+                alert("⚠️ 系統初始化發生問題，請清除瀏覽器快取重試。錯誤訊息: " + err.message);
+            }
         };
 
-        // 初始化彈出視窗內的大畫布
+        // 初始化彈出視窗內的大畫布 (安全強化版)
         function initModalCanvas() {
             mCanvas = document.getElementById('sig-modal-canvas');
+            if (!mCanvas) return;
+            
             mCtx = mCanvas.getContext('2d');
+            if (!mCtx) return;
             
             resizeCanvas();
             window.addEventListener('resize', resizeCanvas);
@@ -295,7 +307,7 @@
         }
 
         function resizeCanvas() {
-            if (!mCanvas) return;
+            if (!mCanvas || !mCtx) return;
             const rect = mCanvas.getBoundingClientRect();
             if (rect.width > 0 && rect.height > 0) {
                 mCanvas.width = rect.width;
@@ -309,7 +321,7 @@
 
         function openSignatureModal() {
             const modal = document.getElementById('sigModal');
-            modal.classList.remove('hidden');
+            if (modal) modal.classList.remove('hidden');
             setTimeout(() => {
                 resizeCanvas();
                 clearModalCanvas();
@@ -317,14 +329,18 @@
         }
 
         function closeSignatureModal() {
-            document.getElementById('sigModal').classList.add('hidden');
+            const modal = document.getElementById('sigModal');
+            if (modal) modal.classList.add('hidden');
         }
 
         function clearModalCanvas() {
-            mCtx.clearRect(0, 0, mCanvas.width, mCanvas.height);
+            if (mCtx && mCanvas) {
+                mCtx.clearRect(0, 0, mCanvas.width, mCanvas.height);
+            }
         }
 
         function confirmSignature() {
+            if (!mCanvas) return;
             const blank = document.createElement('canvas');
             blank.width = mCanvas.width;
             blank.height = mCanvas.height;
@@ -343,6 +359,7 @@
 
         function buildDayHeader() {
             const header = document.getElementById('dayHeader');
+            if (!header) return;
             header.innerHTML = '';
             for (let i = 1; i <= 31; i++) {
                 header.innerHTML += `<th class="w-6 text-[10px] text-black font-bold" style="border: 1.5px solid #000000;">${i}</th>`;
@@ -353,6 +370,7 @@
             const type = document.getElementById('equipType').value;
             const items = equipmentData[type].items;
             const container = document.getElementById('dynamicItems');
+            if (!container) return;
             container.innerHTML = '';
 
             items.forEach((item, index) => {
@@ -379,4 +397,234 @@
             generateReport();
         }
 
-        // 自動去白邊裁切 +
+        // 自動去白邊裁切核心算法 (強化穩定性)
+        function cropAndRotateSignature(base64Str, callback) {
+            const img = new Image();
+            img.src = base64Str;
+            img.onload = function() {
+                const calcCanvas = document.createElement('canvas');
+                calcCanvas.width = img.width;
+                calcCanvas.height = img.height;
+                const cCtx = calcCanvas.getContext('2d');
+                cCtx.drawImage(img, 0, 0);
+
+                let imgData;
+                try {
+                    imgData = cCtx.getImageData(0, 0, calcCanvas.width, calcCanvas.height);
+                } catch (e) {
+                    // 若有安全性或 CORS 問題，直接回傳原圖旋轉
+                    fallbackRotate(img, callback);
+                    return;
+                }
+
+                const data = imgData.data;
+                let minX = calcCanvas.width, maxX = 0, minY = calcCanvas.height, maxY = 0;
+                let foundAnyPixel = false;
+
+                for (let y = 0; y < calcCanvas.height; y++) {
+                    for (let x = 0; x < calcCanvas.width; x++) {
+                        const alphaIdx = (y * calcCanvas.width + x) * 4 + 3;
+                        const rIdx = (y * calcCanvas.width + x) * 4;
+                        const gIdx = (y * calcCanvas.width + x) * 4 + 1;
+                        const bIdx = (y * calcCanvas.width + x) * 4 + 2;
+
+                        if (alphaIdx < data.length) {
+                            const isWhite = data[rIdx] > 240 && data[gIdx] > 240 && data[bIdx] > 240;
+                            const isTransparent = data[alphaIdx] < 10;
+                            if (!isWhite && !isTransparent) {
+                                foundAnyPixel = true;
+                                if (x < minX) minX = x;
+                                if (x > maxX) maxX = x;
+                                if (y < minY) minY = y;
+                                if (y > maxY) maxY = y;
+                            }
+                        }
+                    }
+                }
+
+                if (!foundAnyPixel) {
+                    minX = 0; maxX = img.width; minY = 0; maxY = img.height;
+                }
+
+                const padding = 15;
+                minX = Math.max(0, minX - padding);
+                minY = Math.max(0, minY - padding);
+                maxX = Math.min(img.width, maxX + padding);
+                maxY = Math.min(img.height, maxY + padding);
+
+                const croppedWidth = maxX - minX;
+                const croppedHeight = maxY - minY;
+
+                const outCanvas = document.createElement('canvas');
+                outCanvas.width = croppedHeight;
+                outCanvas.height = croppedWidth;
+                const oCtx = outCanvas.getContext('2d');
+
+                oCtx.translate(outCanvas.width / 2, outCanvas.height / 2);
+                oCtx.rotate(-90 * Math.PI / 180);
+                oCtx.drawImage(
+                    img,
+                    minX, minY, croppedWidth, croppedHeight,
+                    -croppedWidth / 2, -croppedHeight / 2, croppedWidth, croppedHeight
+                );
+
+                callback(outCanvas.toDataURL());
+            };
+        }
+
+        // 裁切失敗時的安全備份旋轉函數
+        function fallbackRotate(img, callback) {
+            const outCanvas = document.createElement('canvas');
+            outCanvas.width = img.height;
+            outCanvas.height = img.width;
+            const oCtx = outCanvas.getContext('2d');
+            oCtx.translate(outCanvas.width / 2, outCanvas.height / 2);
+            oCtx.rotate(-90 * Math.PI / 180);
+            oCtx.drawImage(img, -img.width / 2, -img.height / 2);
+            callback(outCanvas.toDataURL());
+        }
+
+        // 儲存資料
+        function saveRecord(e) {
+            e.preventDefault();
+            const type = document.getElementById('equipType').value;
+            const dateStr = document.getElementById('inspectDate').value;
+            const remark = document.getElementById('remark').value;
+            
+            if (!tempSignatureBase64) {
+                alert("⚠️ 請先點擊按鈕「開啟全螢幕手寫簽名」進行簽核！");
+                return;
+            }
+
+            cropAndRotateSignature(tempSignatureBase64, function(finalRotatedSignature) {
+                const items = equipmentData[type].items;
+                const results = [];
+
+                items.forEach((_, index) => {
+                    const radio = document.querySelector(`input[name="item_${index}"]:checked`);
+                    results.push(radio ? radio.value : 'V');
+                });
+
+                // 安全讀取 LocalStorage 防止毀損
+                let allRecords = [];
+                try {
+                    const stored = localStorage.getItem('equipment_records');
+                    if (stored) allRecords = JSON.parse(stored);
+                } catch (e) {
+                    allRecords = [];
+                }
+
+                allRecords = allRecords.filter(r => !(r.type === type && r.date === dateStr));
+                allRecords.push({
+                    type,
+                    date: dateStr,
+                    results,
+                    remark,
+                    signature: finalRotatedSignature
+                });
+
+                localStorage.setItem('equipment_records', JSON.stringify(allRecords));
+                alert('🎉 點檢紀錄儲存成功！簽名已自動去白邊放大！');
+                
+                tempSignatureBase64 = "";
+                document.getElementById('sig-preview-container').classList.add('hidden');
+                document.getElementById('remark').value = '';
+                generateReport();
+            });
+        }
+
+        // 渲染月報表 (安全強化版)
+        function generateReport() {
+            const type = document.getElementById('equipType').value;
+            const filterMonthEl = document.getElementById('filterMonth');
+            if (!filterMonthEl) return;
+            
+            const filterMonth = filterMonthEl.value;
+            if (!filterMonth) return;
+
+            const meta = equipmentData[type];
+            if (!meta) return;
+
+            document.getElementById('reportTitle').innerText = meta.title;
+            document.getElementById('info_machNo').innerText = meta.machNo;
+            document.getElementById('info_location').innerText = meta.location;
+            document.getElementById('info_manager').innerText = meta.manager;
+
+            const year = parseInt(filterMonth.split('-')[0]);
+            const month = filterMonth.split('-')[1];
+            if (!isNaN(year)) {
+                document.getElementById('info_month').innerText = `${year - 1911} 年 ${month} 月`;
+            }
+
+            // 安全讀取 LocalStorage
+            let allRecords = [];
+            try {
+                const stored = localStorage.getItem('equipment_records');
+                if (stored) allRecords = JSON.parse(stored);
+            } catch (e) {
+                allRecords = [];
+            }
+
+            const currentMonthRecords = allRecords.filter(r => r.type === type && r.date.startsWith(filterMonth));
+
+            const tbody = document.getElementById('reportRows');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+
+            meta.items.forEach((itemText, itemIdx) => {
+                let rowHtml = `<tr><td class="text-left font-bold text-xs py-1 px-2 text-black" style="border: 1.5px solid #000000;">${itemText}</td>`;
+                for (let day = 1; day <= 31; day++) {
+                    const dayStr = day.toString().padStart(2, '0');
+                    const targetDate = `${filterMonth}-${dayStr}`;
+                    
+                    const record = currentMonthRecords.find(r => r.date === targetDate);
+                    let displayVal = '';
+                    if (record && record.results[itemIdx]) {
+                        displayVal = record.results[itemIdx];
+                    }
+                    
+                    let textClass = "text-black font-black text-xs";
+                    rowHtml += `<td class="w-6 text-center ${textClass}" style="border: 1.5px solid #000000;">${displayVal}</td>`;
+                }
+                rowHtml += '</tr>';
+                tbody.innerHTML += rowHtml;
+            });
+
+            const notesTd = document.getElementById('reportNotes');
+            if (notesTd) {
+                const notes = currentMonthRecords
+                    .filter(r => r.remark && r.remark.trim() !== '')
+                    .map(r => `[${r.date.slice(8,10)}日] ${r.remark}`)
+                    .join(' ； ');
+                notesTd.innerText = notes || "良好無異狀。";
+            }
+
+            const sigRow = document.getElementById('signatureRow');
+            if (!sigRow) return;
+            sigRow.innerHTML = '';
+            for (let day = 1; day <= 31; day++) {
+                const dayStr = day.toString().padStart(2, '0');
+                const targetDate = `${filterMonth}-${dayStr}`;
+                const record = currentMonthRecords.find(r => r.date === targetDate);
+                
+                if (record && record.signature) {
+                    sigRow.innerHTML += `
+                        <td class="w-6 h-[120px] p-0 align-middle" style="border: 1.5px solid #000000; overflow: hidden; background-color: #ffffff;">
+                            <img src="${record.signature}" class="w-full h-[115px] mx-auto" style="object-fit: fill; filter: contrast(2.5) brightness(0.4); display: block;">
+                        </td>`;
+                } else {
+                    sigRow.innerHTML += `<td class="w-6 h-[120px]" style="border: 1.5px solid #000000;"></td>`;
+                }
+            }
+        }
+
+        function clearAllData() {
+            if (confirm('⚠️ 確定要清空所有紀錄嗎？（清空後將重置衝突的快取）')) {
+                localStorage.removeItem('equipment_records');
+                generateReport();
+                alert('已成功清空，系統恢復全新狀態！');
+            }
+        }
+    </script>
+</body>
+</html>

@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>設備日常檢點系統 (完美直書版)</title>
-    <!-- 引入 Tailwind CSS -->
+    <title>廠內設備日常檢點系統</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @media print {
@@ -32,100 +31,130 @@
         }
     </style>
 </head>
-<body class="bg-gray-50 text-gray-800 p-6">
+<body class="bg-gray-50 text-gray-800 p-4 font-sans">
 
-    <!-- ==================== 1. 前端輸入與操作介面 ==================== -->
+    <!-- ==================== 前端操作介面 (師傅與主管入口) ==================== -->
     <div class="max-w-7xl mx-auto no-print">
-        <h1 class="text-3xl font-bold mb-6 text-blue-900 text-center">⚙️ 設備日常點檢系統 (直書清晰版)</h1>
+        <h1 class="text-3xl font-bold mb-6 text-blue-900 text-center">⚙️ 廠內設備日常檢點系統</h1>
         
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-            <!-- 填寫點檢表單 -->
-            <div class="bg-white p-6 rounded-lg shadow-md lg:col-span-1 border border-gray-200">
-                <h2 class="text-xl font-semibold mb-4 text-gray-800 border-b pb-2">📋 每日點檢登錄</h2>
-                <form id="inspectionForm" onsubmit="saveRecord(event)">
-                    <div class="mb-4">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">選擇設備類型</label>
-                        <select id="equipType" class="w-full border-gray-300 border p-2 rounded" onchange="loadQuestions()">
-                            <option value="crane">固定式起重機</option>
-                            <option value="forklift">堆高機</option>
+        <!-- 分頁切換按鈕 -->
+        <div class="flex gap-4 mb-6 justify-center">
+            <button onclick="switchTab('worker')" id="btn-worker" class="px-6 py-2 bg-blue-800 text-white font-bold rounded-lg shadow">🔧 師傅現場檢點入口</button>
+            <button onclick="switchTab('manager')" id="btn-manager" class="px-6 py-2 bg-gray-300 text-gray-700 font-bold rounded-lg shadow">💼 主管審核報表入口</button>
+        </div>
+
+        <!-- 1. 師傅點檢畫面 -->
+        <div id="tab-worker" class="bg-white p-6 rounded-lg shadow-md border border-gray-200 max-w-xl mx-auto">
+            <h2 class="text-xl font-semibold mb-4 text-gray-800 border-b pb-2">📋 每日點檢登錄</h2>
+            <form id="inspectionForm" onsubmit="saveRecord(event)">
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">選擇廠區/棟別</label>
+                        <select id="inspectBuilding" class="w-full border-gray-300 border p-2 rounded text-sm" onchange="loadQuestions()">
+                            <option value="第一棟">第一棟</option>
+                            <option value="第二棟">第二棟</option>
+                            <option value="第三棟">第三棟</option>
                         </select>
                     </div>
-                    
-                    <div class="mb-4">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">點檢日期</label>
-                        <input type="date" id="inspectDate" class="w-full border-gray-300 border p-2 rounded" required>
-                    </div>
-
-                    <div class="mb-4">
-                        <label class="block text-sm font-semibold text-gray-800 mb-2">點檢項目結果</label>
-                        <div id="dynamicItems" class="space-y-3 max-h-60 overflow-y-auto pr-1"></div>
-                    </div>
-
-                    <div class="mb-4">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">記事/異常說明</label>
-                        <textarea id="remark" class="w-full border-gray-300 border p-2 rounded h-16 text-sm" placeholder="若有異常請說明"></textarea>
-                    </div>
-
-                    <!-- 手寫簽名區 -->
-                    <div class="mb-6">
-                        <label class="block text-sm font-semibold text-gray-800 mb-1">✍️ 檢點人員手寫簽名 (請直書書寫)</label>
-                        <button type="button" onclick="openSignatureModal()" class="w-full py-3 px-4 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-lg shadow flex items-center justify-center gap-2 transition mb-2">
-                            <span>📝 點擊此處「開啟全螢幕手寫簽名」</span>
-                        </button>
-
-                        <div id="sig-preview-container" class="hidden border border-gray-300 rounded p-2 bg-gray-50 flex flex-col items-center">
-                            <p class="text-xs text-green-700 font-bold mb-1">✓ 已完成手寫簽名（預覽如下）：</p>
-                            <img id="sig-preview-img" class="max-h-20 border bg-white object-contain" src="">
-                            <button type="button" onclick="openSignatureModal()" class="text-xs text-blue-600 underline mt-1">重新簽名</button>
-                        </div>
-                    </div>
-
-                    <button type="submit" class="w-full bg-blue-800 hover:bg-blue-900 text-white font-bold py-2 px-4 rounded transition">
-                        儲存今日紀錄並簽名
-                    </button>
-                </form>
-            </div>
-
-            <!-- 報表查詢與控制面板 -->
-            <div class="bg-white p-6 rounded-lg shadow-md lg:col-span-2 border border-gray-200">
-                <h2 class="text-xl font-semibold mb-4 text-gray-800 border-b pb-2">📊 報表查詢與匯出</h2>
-                <div class="flex flex-wrap gap-4 mb-4">
                     <div>
-                        <label class="block text-sm text-gray-600">查詢月份</label>
-                        <input type="month" id="filterMonth" class="border p-2 rounded" onchange="generateReport()">
-                    </div>
-                    <div class="flex items-end">
-                        <button onclick="window.print()" class="bg-green-700 hover:bg-green-800 text-white font-bold py-2 px-4 rounded transition">
-                            🖨️ 預覽並列印 / 存為 PDF
-                        </button>
-                    </div>
-                    <div class="flex items-end">
-                        <button onclick="clearAllData()" class="bg-red-600 hover:bg-red-700 text-white font-bold py-1 px-3 rounded text-xs transition">
-                            ⚠️ 清空測試紀錄
-                        </button>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">選擇設備類型</label>
+                        <select id="equipType" class="w-full border-gray-300 border p-2 rounded text-sm" onchange="loadQuestions()">
+                            <option value="crane_north">固定式起重機(北)</option>
+                            <option value="crane_south">固定式起重機(南)</option>
+                            <option value="oxygen_acetylene">氧氣、乙炔鋼瓶</option>
+                            <option value="air_compressor">空壓機</option>
+                            <option value="band_saw">帶鋸機</option>
+                            <option value="cnc">CNC日常檢點</option>
+                            <option value="welding">電焊機</option>
+                        </select>
                     </div>
                 </div>
+                
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">點檢日期</label>
+                    <input type="date" id="inspectDate" class="w-full border-gray-300 border p-2 rounded text-sm" required>
+                </div>
+
+                <div class="mb-4">
+                    <label class="block text-sm font-semibold text-gray-800 mb-2">點檢項目結果</label>
+                    <div id="dynamicItems" class="space-y-3 max-h-72 overflow-y-auto pr-1"></div>
+                </div>
+
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">記事/異常說明</label>
+                    <textarea id="remark" class="w-full border-gray-300 border p-2 rounded h-16 text-sm" placeholder="若有異常請說明"></textarea>
+                </div>
+
+                <div class="mb-6">
+                    <label class="block text-sm font-semibold text-gray-800 mb-1">✍️ 檢點人員手寫簽名</label>
+                    <button type="button" onclick="openSignatureModal()" class="w-full py-3 px-4 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-lg shadow flex items-center justify-center gap-2 transition mb-2">
+                        <span>📝 點擊此處「開啟全螢幕手寫簽名」</span>
+                    </button>
+                    <div id="sig-preview-container" class="hidden border border-gray-300 rounded p-2 bg-gray-50 flex flex-col items-center">
+                        <p class="text-xs text-green-700 font-bold mb-1">✓ 已完成手寫簽名</p>
+                        <img id="sig-preview-img" class="max-h-20 border bg-white object-contain" src="">
+                    </div>
+                </div>
+
+                <button type="submit" id="submitBtn" class="w-full bg-blue-800 hover:bg-blue-900 text-white font-bold py-2 px-4 rounded transition">
+                    上傳點檢紀錄至雲端
+                </button>
+            </form>
+        </div>
+
+        <!-- 2. 主管審核報表畫面 -->
+        <div id="tab-manager" class="bg-white p-6 rounded-lg shadow-md border border-gray-200 hidden">
+            <h2 class="text-xl font-semibold mb-4 text-gray-800 border-b pb-2">📊 歷史月報表查詢與匯出</h2>
+            <div class="flex flex-wrap gap-4 items-end mb-6">
+                <div>
+                    <label class="block text-sm text-gray-600 mb-1">選擇棟別</label>
+                    <select id="filterBuilding" class="border p-2 rounded text-sm">
+                        <option value="第一棟">第一棟</option>
+                        <option value="第二棟">第二棟</option>
+                        <option value="第三棟">第三棟</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm text-gray-600 mb-1">選擇設備</label>
+                    <select id="filterDevice" class="border p-2 rounded text-sm">
+                        <option value="crane_north">固定式起重機(北)</option>
+                        <option value="crane_south">固定式起重機(南)</option>
+                        <option value="oxygen_acetylene">氧氣、乙炔鋼瓶</option>
+                        <option value="air_compressor">空壓機</option>
+                        <option value="band_saw">帶鋸機</option>
+                        <option value="cnc">CNC日常檢點</option>
+                        <option value="welding">電焊機</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm text-gray-600 mb-1">查詢月份</label>
+                    <input type="month" id="filterMonth" class="border p-2 rounded text-sm">
+                </div>
+                <button onclick="fetchCloudReport()" class="bg-blue-800 hover:bg-blue-900 text-white font-bold py-2 px-4 rounded text-sm transition">
+                    🔍 從雲端同步報表
+                </button>
+                <button onclick="window.print()" class="bg-green-700 hover:bg-green-800 text-white font-bold py-2 px-4 rounded text-sm transition">
+                    🖨️ 預覽並列印 / 存為 PDF
+                </button>
             </div>
         </div>
     </div>
 
-    <!-- ==================== 2. 月報表輸出區 ==================== -->
-    <div id="printReportArea" class="bg-white p-6 rounded shadow-lg max-w-7xl mx-auto print-area border border-black">
+    <!-- ==================== 月報表輸出區 (列印區) ==================== -->
+    <div id="printReportArea" class="bg-white p-6 rounded shadow-lg max-w-7xl mx-auto print-area border border-black mt-4">
         <div class="text-center mb-4">
-            <h1 class="text-2xl font-bold tracking-widest text-black" id="reportTitle">固定式起重機日常檢點表</h1>
+            <h1 class="text-2xl font-bold tracking-widest text-black" id="reportTitle">日常檢點表</h1>
         </div>
-
         <div class="grid grid-cols-4 gap-2 text-sm mb-2 font-mono text-black">
-            <div><strong>機械編號：</strong> <span id="info_machNo" class="font-bold">AC011/AC020</span></div>
-            <div><strong>位置：</strong> <span id="info_location" class="font-bold">第二棟北</span></div>
-            <div><strong>單位主管：</strong> <span class="border-2 border-black px-2 py-0.5 font-bold" id="info_manager">吳政軒</span></div>
+            <div><strong>位置/棟別：</strong> <span id="info_location" class="font-bold">第一棟</span></div>
+            <div><strong>單位主管：</strong> <span class="border border-black px-2 py-0.5 font-bold">吳政軒</span></div>
             <div><strong>檢查月份：</strong> <span id="info_month" class="underline font-bold">115 年 07 月</span></div>
+            <div class="text-right text-xs text-gray-500 no-print">狀態: <span id="syncStatus">尚未同步</span></div>
         </div>
-
         <table class="w-full report-table font-sans">
             <thead>
                 <tr class="bg-gray-100">
-                    <th rowspan="2" class="w-48 text-xs text-black font-bold">檢點項目</th>
+                    <th rowspan="2" class="w-64 text-xs text-black font-bold">檢點項目</th>
                     <th colspan="31" class="text-xs py-0.5 text-black font-bold">檢點結果 (日期)</th>
                 </tr>
                 <tr class="bg-gray-100" id="dayHeader"></tr>
@@ -133,7 +162,7 @@
             <tbody id="reportRows"></tbody>
             <tfoot>
                 <tr>
-                    <td class="text-left font-bold text-xs text-black" style="height: 40px; vertical-align: top;">8. 記事</td>
+                    <td class="text-left font-bold text-xs text-black" style="height: 40px; vertical-align: top;">記事 / 異常描述</td>
                     <td colspan="31" class="text-left px-2 text-xs text-black font-bold" id="reportNotes" style="vertical-align: top;"></td>
                 </tr>
                 <tr>
@@ -148,11 +177,11 @@
         </table>
     </div>
 
-    <!-- ==================== 3. 全螢幕彈出式手寫視窗 (Modal) ==================== -->
+    <!-- ==================== 全螢幕彈出式手寫視窗 (Modal) ==================== -->
     <div id="sigModal" class="fixed inset-0 bg-black bg-opacity-70 z-50 flex flex-col justify-between p-4 hidden no-print">
         <div class="bg-white rounded-lg shadow-xl w-full max-w-lg mx-auto overflow-hidden flex flex-col h-[90vh]">
             <div class="bg-gray-100 p-3 border-b flex justify-between items-center">
-                <span class="font-bold text-gray-800">✍️ 檢點人員手寫簽名 (請「由上往下」直寫您的名字)</span>
+                <span class="font-bold text-gray-800">✍️ 檢點人員手寫簽名 (請由上往下直書名字)</span>
                 <button type="button" onclick="closeSignatureModal()" class="text-gray-500 hover:text-gray-700 text-xl font-bold">✕</button>
             </div>
             <div class="flex-1 bg-gray-50 p-4 flex items-center justify-center relative">
@@ -165,37 +194,39 @@
         </div>
     </div>
 
-    <!-- ==================== 4. JavaScript 邏輯 ==================== -->
-    <script {nonce}>
+    <!-- ==================== JavaScript 邏輯系統 ==================== -->
+    <script>
+        // ⚠️ 請在此處貼上您從 Google 雲端取得的「網頁應用程式 URL」
+        const GAS_API_URL = "https://script.google.com/macros/s/AKfycbwufsIdC8stBgvOamILHer7V7HCsOhk_p8lc0GNsMK0JtyUHtetof7E1Qsp3WPxyHWT/exec";
+
         const equipmentData = {
-            crane: {
-                title: "固定式起重機日常檢點表",
-                machNo: "AC011/AC020",
-                location: "第二棟北",
-                manager: "吳政軒",
-                items: [
-                    "1. 過捲預防裝置動作狀況正常",
-                    "2. 走行警報裝置動作狀況正常 (遙控器操作者)",
-                    "3. 制動器及離合器動作正常",
-                    "4. 鋼索 (或吊鏈) 運行正常",
-                    "5. 吊鉤機能正常",
-                    "6. 控制裝置性能正常",
-                    "7. 直、橫行軌道正常"
-                ]
+            crane_north: {
+                title: "固定式起重機日常檢點表 (北)",
+                items: ["1. 過捲預防裝置動作狀況正常", "2. 走行警報裝置動作狀況正常", "3. 制動器及離合器動作正常", "4. 鋼索 (或吊鏈) 運行正常", "5. 吊鉤機能正常", "6. 控制裝置性能正常", "7. 直、橫行軌道正常"]
             },
-            forklift: {
-                title: "堆高機每日安全點檢表",
-                machNo: "FL-008 / FL-009",
-                location: "第一棟成品倉庫",
-                manager: "吳政軒",
-                items: [
-                    "1. 制動液量及煞車效能正常",
-                    "2. 輪胎氣壓及磨損狀況正常",
-                    "3. 液壓油量及各油路有無漏油",
-                    "4. 貨叉及鏈條有無變形或損傷",
-                    "5. 方向燈、大燈及後照鏡正常",
-                    "6. 喇叭及倒車警報器功能正常"
-                ]
+            crane_south: {
+                title: "固定式起重機日常檢點表 (南)",
+                items: ["1. 過捲預防裝置動作狀況正常", "2. 走行警報裝置動作狀況正常", "3. 制動器及離合器動作正常", "4. 鋼索 (或吊鏈) 運行正常", "5. 吊鉤機能正常", "6. 控制裝置性能正常", "7. 直、橫行軌道正常"]
+            },
+            oxygen_acetylene: {
+                title: "氧氣、乙炔鋼瓶使用前檢點表",
+                items: ["1. 鋼瓶是否損傷、龜裂、變形、鏽蝕、破裂", "2. 螺栓有無鬆弛", "3. 鋼瓶裝置性能是否良好", "4. 供氣管有無龜裂、漏氣", "5. 壓力表示否正常、調整器是否正常", "6. 鋼瓶置放有無直立及防止滑動", "7. 滅火設備有無置放於工作地點", "8. 鋼瓶是否置於通風陰涼處", "9. 是否清除鋼瓶及配管口附著之油漬,塵埃等", "10. 作業時應檢點瓶閥,壓升調整器,軟管套夾等器具", "11. 檢點漏氣時是否使用皂水", "12. 施作前,是否確實檢查有無易燃物(半徑五公尺)"]
+            },
+            air_compressor: {
+                title: "空壓機日常檢點表",
+                items: ["1. 油位計油面在上下限之間", "2. 油溫不可超過95度 (每日使用時記錄)", "3. 集水容器排水", "4. 油氣分離桶排水", "5. 回油管路，檢查堵塞", "6. 管路與接頭滲漏檢查", "7. 安全閥、滲漏檢查", "8. 空氣濾芯清潔", "9. 空壓機累計運行時數填寫 (每日使用前填寫)"]
+            },
+            band_saw: {
+                title: "帶鋸機日常檢點表",
+                items: ["1. 電源及主開關、緊急停止功能是否正常", "2. 鋸帶(鋸條)狀態:裂紋、缺齒、磨損", "3. 導輪、軸承、軸心無異常晃動或異音", "4. 夾具功能是否正常", "5. 電線、電纜無破皮、無裸露", "6. 潤滑油供給狀態", "7. 異音、異味 (電線過熱、煙) 檢查", "8. 按鍵功能、極限感應開關"]
+            },
+            cnc: {
+                title: "CNC日常檢點表",
+                items: ["1. 東西南北向軌道維持清潔 / Giữ cho đường ray sạch sẽ", "2. 機台維持清潔 / Giữ máy móc sạch sẽ", "3. 火嘴維持清潔 / Giữ cho đầu phun sạch sẽ", "4. 極限開關檢測正常 / Kiểm tra công tắc giới hạn có hoạt động bình thường không", "5. 履帶檢查正常 / Kiểm tra đường ray là bình thường không", "6. 關機作業正常 / Kiểm tra xem công tắc bật tắt có hoạt động bình thường không", "7. 關閉空氣來源 / Tắt nguồn không khí", "8. 機台外觀以帆布遮蓋防塵 / Phủ bạt lên bề mặt ngoài của máy để chống bụi", "9. 螢幕、按鍵、遙控器、氣壓、電離子機正常 / Vui lòng kiểm tra xem màn hình, các nút bấm... hoạt động bình thường không"]
+            },
+            welding: {
+                title: "電焊機使用前檢點表",
+                items: ["1. 作業服裝是否妥當(全身長袖長褲、牛仔布或阻燃棉等)", "2. 手套防護圍裙、護腿等是否使用指定材質", "3. 穿用鞋是否適當(具有耐熱底、防滑、防電設計)", "4. 作業場所無易燃物、爆炸物", "5. 使用適當之遮光面罩(鏡片遮光條數在DIN10以上)", "6. 電源保險絲、電容量應妥當", "7. 一次邊之電線應正確確實(螺絲鎖緊、端子無鬆動)", "8. 接地線應適當(電線無裸露、接地端連接牢靠)", "9. 自動電擊防止裝置正常運行", "10. 電焊作業使用之焊接柄、無破損", "11. 電纜線應符合格品、絕緣良好", "12. 應設置滅火器", "13. 電線應架高且避免浸水"]
             }
         };
 
@@ -208,8 +239,21 @@
             initModalCanvas();
             buildDayHeader();
             loadQuestions();
-            generateReport();
         };
+
+        function switchTab(role) {
+            if (role === 'worker') {
+                document.getElementById('tab-worker').classList.remove('hidden');
+                document.getElementById('tab-manager').classList.add('hidden');
+                document.getElementById('btn-worker').className = "px-6 py-2 bg-blue-800 text-white font-bold rounded-lg shadow";
+                document.getElementById('btn-manager').className = "px-6 py-2 bg-gray-300 text-gray-700 font-bold rounded-lg shadow";
+            } else {
+                document.getElementById('tab-worker').classList.add('hidden');
+                document.getElementById('tab-manager').classList.remove('hidden');
+                document.getElementById('btn-worker').className = "px-6 py-2 bg-gray-300 text-gray-700 font-bold rounded-lg shadow";
+                document.getElementById('btn-manager').className = "px-6 py-2 bg-blue-800 text-white font-bold rounded-lg shadow";
+            }
+        }
 
         function initModalCanvas() {
             mCanvas = document.getElementById('sig-modal-canvas');
@@ -227,8 +271,7 @@
             mCanvas.addEventListener("mousemove", (e) => {
                 if (!mDrawing) return;
                 const pos = getCoords(e.clientX, e.clientY);
-                mCtx.lineTo(pos.x, pos.y);
-                mCtx.stroke();
+                mCtx.lineTo(pos.x, pos.y); mCtx.stroke();
             });
 
             mCanvas.addEventListener("touchstart", (e) => {
@@ -246,12 +289,8 @@
         function resizeCanvas() {
             if (!mCanvas || !mCtx) return;
             const rect = mCanvas.getBoundingClientRect();
-            mCanvas.width = rect.width;
-            mCanvas.height = rect.height;
-            mCtx.strokeStyle = "#000000";
-            mCtx.lineWidth = 5; 
-            mCtx.lineCap = "round";
-            mCtx.lineJoin = "round";
+            mCanvas.width = rect.width; mCanvas.height = rect.height;
+            mCtx.strokeStyle = "#000000"; mCtx.lineWidth = 5; mCtx.lineCap = "round"; mCtx.lineJoin = "round";
         }
 
         function openSignatureModal() {
@@ -273,36 +312,52 @@
             const header = document.getElementById('dayHeader');
             header.innerHTML = '';
             for (let i = 1; i <= 31; i++) {
-                header.innerHTML += `<th class="w-6 text-[10px] text-black font-bold" style="border: 1.5px solid #000000;">${i}</th>`;
+                header.innerHTML += `<th class="w-6 text-[10px] text-black font-bold">${i}</th>`;
             }
         }
 
         function loadQuestions() {
             const type = document.getElementById('equipType').value;
             const container = document.getElementById('dynamicItems');
+            const building = document.getElementById('inspectBuilding').value;
+            
+            // 同步更新報表框架預覽
+            document.getElementById('reportTitle').innerText = equipmentData[type].title;
+            document.getElementById('info_location').innerText = building;
+            
             container.innerHTML = '';
             equipmentData[type].items.forEach((item, index) => {
+                // 如果是空壓機且是油溫或累計時數項目，開放輸入文字框輸入數值
+                let inputHtml = `
+                    <div class="flex gap-4">
+                        <label class="inline-flex items-center"><input type="radio" name="item_${index}" value="V" checked><span class="ml-1 font-bold">V 良好</span></label>
+                        <label class="inline-flex items-center"><input type="radio" name="item_${index}" value="/"><span class="ml-1 font-bold">/ 無</span></label>
+                        <label class="inline-flex items-center"><input type="radio" name="item_${index}" value="X"><span class="ml-1 font-bold">X 不良</span></label>
+                    </div>`;
+                
+                if (type === 'air_compressor' && (index === 1 || index === 8)) {
+                    inputHtml = `<input type="text" id="val_${index}" placeholder="請填寫具體數值" class="border p-1 rounded w-full text-xs mt-1 border-gray-400">`;
+                }
+
                 container.innerHTML += `
                     <div class="p-2 border rounded bg-gray-50 border-gray-300 text-xs">
-                        <p class="font-semibold mb-1">${item}</p>
-                        <div class="flex gap-4">
-                            <label class="inline-flex items-center"><input type="radio" name="item_${index}" value="V" checked><span class="ml-1 font-bold">V 良好</span></label>
-                            <label class="inline-flex items-center"><input type="radio" name="item_${index}" value="/"><span class="ml-1 font-bold">/ 無</span></label>
-                            <label class="inline-flex items-center"><input type="radio" name="item_${index}" value="X"><span class="ml-1 font-bold">X 不良</span></label>
-                        </div>
+                        <p class="font-semibold mb-1 text-gray-900">${item}</p>
+                        ${inputHtml}
                     </div>`;
             });
-            generateReport();
+            
+            // 清空舊報表資料列
+            document.getElementById('reportRows').innerHTML = '';
+            document.getElementById('signatureRow').innerHTML = '';
         }
 
-        // ⭐ 核心升級：精準直書去白邊，保留原樣，放大 3 倍維持高清！
+        // 高清晰直書去白邊裁切
         function cropPureSignature(base64Str, callback) {
             const img = new Image();
             img.src = base64Str;
             img.onload = function() {
                 const calcCanvas = document.createElement('canvas');
-                calcCanvas.width = img.width;
-                calcCanvas.height = img.height;
+                calcCanvas.width = img.width; calcCanvas.height = img.height;
                 const cCtx = calcCanvas.getContext('2d');
                 cCtx.drawImage(img, 0, 0);
 
@@ -313,8 +368,7 @@
 
                 for (let y = 0; y < calcCanvas.height; y++) {
                     for (let x = 0; x < calcCanvas.width; x++) {
-                        const alpha = data[(y * calcCanvas.width + x) * 4 + 3];
-                        if (alpha > 10) {
+                        if (data[(y * calcCanvas.width + x) * 4 + 3] > 10) {
                             found = true;
                             if (x < minX) minX = x; if (x > maxX) maxX = x;
                             if (y < minY) minY = y; if (y > maxY) maxY = y;
@@ -323,81 +377,116 @@
                 }
 
                 if (!found) { minX = 0; maxX = img.width; minY = 0; maxY = img.height; }
-
-                const padding = 10; // 保留合適的邊緣距離
+                const padding = 10;
                 minX = Math.max(0, minX - padding); minY = Math.max(0, minY - padding);
                 maxX = Math.min(img.width, maxX + padding); maxY = Math.min(img.height, maxY + padding);
 
-                const w = maxX - minX;
-                const h = maxY - minY;
-
-                // 創建 3 倍高解析度的輸出畫布
+                const w = maxX - minX; const h = maxY - minY;
                 const outCanvas = document.createElement('canvas');
-                outCanvas.width = w * 3;
-                outCanvas.height = h * 3;
+                outCanvas.width = w * 3; outCanvas.height = h * 3;
                 const oCtx = outCanvas.getContext('2d');
-
-                oCtx.imageSmoothingEnabled = true;
-                oCtx.imageSmoothingQuality = 'high';
-                oCtx.scale(3, 3); // 放大 3 倍渲染，確保字跡圓滑清晰
-
-                // 直接繪製裁切區塊，不作任何角度旋轉
+                oCtx.scale(3, 3);
                 oCtx.drawImage(img, minX, minY, w, h, 0, 0, w, h);
                 callback(outCanvas.toDataURL('image/png'));
             };
         }
 
+        // 傳送資料到雲端 Google 試算表
         function saveRecord(e) {
             e.preventDefault();
-            const type = document.getElementById('equipType').value;
-            const dateStr = document.getElementById('inspectDate').value;
+            if (GAS_API_URL === "YOUR_GAS_WEB_APP_URL") {
+                alert("⚠️ 請先在程式碼中配置正確的 GAS_API_URL！");
+                return;
+            }
             if (!tempSignatureBase64) { alert("⚠️ 請先完成手寫簽名！"); return; }
 
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.innerText = "正在上傳雲端...";
+            submitBtn.disabled = true;
+
             cropPureSignature(tempSignatureBase64, function(finalSignature) {
+                const type = document.getElementById('equipType').value;
                 const results = [];
+                
                 equipmentData[type].items.forEach((_, index) => {
-                    const radio = document.querySelector(`input[name="item_${index}"]:checked`);
-                    results.push(radio ? radio.value : 'V');
+                    if (type === 'air_compressor' && (index === 1 || index === 8)) {
+                        const valInput = document.getElementById(`val_${index}`);
+                        results.push(valInput ? valInput.value : '');
+                    } else {
+                        const radio = document.querySelector(`input[name="item_${index}"]:checked`);
+                        results.push(radio ? radio.value : 'V');
+                    }
                 });
 
-                let allRecords = [];
-                try { const stored = localStorage.getItem('equipment_records'); if (stored) allRecords = JSON.parse(stored); } catch (e) {}
-                allRecords = allRecords.filter(r => !(r.type === type && r.date === dateStr));
-                allRecords.push({ type, date: dateStr, results, remark: document.getElementById('remark').value, signature: finalSignature });
-                
-                localStorage.setItem('equipment_records', JSON.stringify(allRecords));
-                alert('🎉 儲存成功！簽名已套用「完美直立大字」模式！');
-                document.getElementById('sig-preview-container').classList.add('hidden');
-                tempSignatureBase64 = "";
-                generateReport();
+                const payload = {
+                    date: document.getElementById('inspectDate').value,
+                    building: document.getElementById('inspectBuilding').value,
+                    device: type,
+                    results: results,
+                    remark: document.getElementById('remark').value,
+                    signature: finalSignature
+                };
+
+                fetch(GAS_API_URL, {
+                    method: 'POST',
+                    mode: 'no-cors', // 使用 no-cors 模式確保跨域順暢寫入
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                }).then(() => {
+                    alert('🎉 點檢資料上傳成功！已安全備存至雲端！');
+                    document.getElementById('remark').value = "";
+                    document.getElementById('sig-preview-container').classList.add('hidden');
+                    tempSignatureBase64 = "";
+                    submitBtn.innerText = "上傳點檢紀錄至雲端";
+                    submitBtn.disabled = false;
+                }).catch(err => {
+                    alert('❌ 上傳失敗: ' + err);
+                    submitBtn.disabled = false;
+                });
             });
         }
 
-        function generateReport() {
-            const type = document.getElementById('equipType').value;
-            const filterMonth = document.getElementById('filterMonth').value;
-            if (!filterMonth) return;
+        // 從雲端 Google 試算表撈取月報表
+        function fetchCloudReport() {
+            const building = document.getElementById('filterBuilding').value;
+            const device = document.getElementById('filterDevice').value;
+            const month = document.getElementById('filterMonth').value;
+            const statusText = document.getElementById('syncStatus');
 
+            if (!month) { alert("請選擇查詢月份"); return; }
+            statusText.innerText = "雲端同步中...";
+
+            const url = `${GAS_API_URL}?month=${month}&device=${device}&building=${building}`;
+
+            fetch(url)
+            .then(res => res.json())
+            .then(cloudRecords => {
+                statusText.innerText = "同步完成";
+                renderReportTable(device, building, month, cloudRecords);
+            })
+            .catch(err => {
+                statusText.innerText = "同步失敗";
+                alert("❌ 撈取資料失敗，請確認 GAS API 是否發佈正確！" + err);
+            });
+        }
+
+        function renderReportTable(type, building, filterMonth, currentMonthRecords) {
             const meta = equipmentData[type];
             document.getElementById('reportTitle').innerText = meta.title;
-            document.getElementById('info_machNo').innerText = meta.machNo;
-            document.getElementById('info_location').innerText = meta.location;
-            document.getElementById('info_manager').innerText = meta.manager;
+            document.getElementById('info_location').innerText = building;
 
             const year = parseInt(filterMonth.split('-')[0]);
             document.getElementById('info_month').innerText = `${year - 1911} 年 ${filterMonth.split('-')[1]} 月`;
 
-            let allRecords = [];
-            try { const stored = localStorage.getItem('equipment_records'); if (stored) allRecords = JSON.parse(stored); } catch (e) {}
-            const currentMonthRecords = allRecords.filter(r => r.type === type && r.date.startsWith(filterMonth));
-
             const tbody = document.getElementById('reportRows');
             tbody.innerHTML = '';
+            
             meta.items.forEach((itemText, itemIdx) => {
-                let rowHtml = `<tr><td class="text-left font-bold text-xs py-1 px-2 text-black" style="border: 1.5px solid #000000;">${itemText}</td>`;
+                let rowHtml = `<tr><td class="text-left font-bold text-xs py-1 px-2 text-black">${itemText}</td>`;
                 for (let day = 1; day <= 31; day++) {
                     const rec = currentMonthRecords.find(r => parseInt(r.date.slice(8,10)) === day);
-                    rowHtml += `<td class="w-6 text-center text-black font-black text-xs" style="border: 1.5px solid #000000;">${rec ? rec.results[itemIdx] : ''}</td>`;
+                    let displayVal = rec ? rec.results[itemIdx] : '';
+                    rowHtml += `<td class="w-6 text-center font-bold text-xs text-black">${displayVal}</td>`;
                 }
                 tbody.innerHTML += rowHtml + '</tr>';
             });
@@ -409,19 +498,14 @@
             for (let day = 1; day <= 31; day++) {
                 const rec = currentMonthRecords.find(r => parseInt(r.date.slice(8,10)) === day);
                 if (rec && rec.signature) {
-                    // ⭐ 移除所有轉向標籤，配合 object-fit: contain，讓您的手寫字自然漂亮地頂天立地撐滿！
                     sigRow.innerHTML += `
-                        <td class="w-6 h-[120px] p-[2px] align-middle" style="border: 1.5px solid #000000; background: #ffffff;">
+                        <td class="w-6 h-[120px] p-[2px] align-middle bg-white">
                             <img src="${rec.signature}" class="w-full h-full mx-auto" style="object-fit: contain; filter: contrast(3) brightness(0.2); display: block;">
                         </td>`;
                 } else {
-                    sigRow.innerHTML += `<td class="w-6 h-[120px]" style="border: 1.5px solid #000000;"></td>`;
+                    sigRow.innerHTML += `<td class="w-6 h-[120px]"></td>`;
                 }
             }
-        }
-
-        function clearAllData() {
-            if (confirm('⚠️ 確定要清空所有紀錄嗎？')) { localStorage.removeItem('equipment_records'); generateReport(); }
         }
     </script>
 </body>

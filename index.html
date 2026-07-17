@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>設備日常檢點系統 (橫式大字清晰版)</title>
+    <title>設備日常檢點系統 (完美直書版)</title>
+    <!-- 引入 Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @media print {
@@ -33,10 +34,12 @@
 </head>
 <body class="bg-gray-50 text-gray-800 p-6">
 
+    <!-- ==================== 1. 前端輸入與操作介面 ==================== -->
     <div class="max-w-7xl mx-auto no-print">
-        <h1 class="text-3xl font-bold mb-6 text-blue-900 text-center">⚙️ 設備日常點檢系統 (橫式大字不旋轉版)</h1>
+        <h1 class="text-3xl font-bold mb-6 text-blue-900 text-center">⚙️ 設備日常點檢系統 (直書清晰版)</h1>
         
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+            <!-- 填寫點檢表單 -->
             <div class="bg-white p-6 rounded-lg shadow-md lg:col-span-1 border border-gray-200">
                 <h2 class="text-xl font-semibold mb-4 text-gray-800 border-b pb-2">📋 每日點檢登錄</h2>
                 <form id="inspectionForm" onsubmit="saveRecord(event)">
@@ -63,8 +66,9 @@
                         <textarea id="remark" class="w-full border-gray-300 border p-2 rounded h-16 text-sm" placeholder="若有異常請說明"></textarea>
                     </div>
 
+                    <!-- 手寫簽名區 -->
                     <div class="mb-6">
-                        <label class="block text-sm font-semibold text-gray-800 mb-1">✍️ 檢點人員手寫簽名</label>
+                        <label class="block text-sm font-semibold text-gray-800 mb-1">✍️ 檢點人員手寫簽名 (請直書書寫)</label>
                         <button type="button" onclick="openSignatureModal()" class="w-full py-3 px-4 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-lg shadow flex items-center justify-center gap-2 transition mb-2">
                             <span>📝 點擊此處「開啟全螢幕手寫簽名」</span>
                         </button>
@@ -82,6 +86,7 @@
                 </form>
             </div>
 
+            <!-- 報表查詢與控制面板 -->
             <div class="bg-white p-6 rounded-lg shadow-md lg:col-span-2 border border-gray-200">
                 <h2 class="text-xl font-semibold mb-4 text-gray-800 border-b pb-2">📊 報表查詢與匯出</h2>
                 <div class="flex flex-wrap gap-4 mb-4">
@@ -104,6 +109,7 @@
         </div>
     </div>
 
+    <!-- ==================== 2. 月報表輸出區 ==================== -->
     <div id="printReportArea" class="bg-white p-6 rounded shadow-lg max-w-7xl mx-auto print-area border border-black">
         <div class="text-center mb-4">
             <h1 class="text-2xl font-bold tracking-widest text-black" id="reportTitle">固定式起重機日常檢點表</h1>
@@ -142,10 +148,11 @@
         </table>
     </div>
 
+    <!-- ==================== 3. 全螢幕彈出式手寫視窗 (Modal) ==================== -->
     <div id="sigModal" class="fixed inset-0 bg-black bg-opacity-70 z-50 flex flex-col justify-between p-4 hidden no-print">
         <div class="bg-white rounded-lg shadow-xl w-full max-w-lg mx-auto overflow-hidden flex flex-col h-[90vh]">
             <div class="bg-gray-100 p-3 border-b flex justify-between items-center">
-                <span class="font-bold text-gray-800">✍️ 檢點同仁手寫簽名</span>
+                <span class="font-bold text-gray-800">✍️ 檢點人員手寫簽名 (請「由上往下」直寫您的名字)</span>
                 <button type="button" onclick="closeSignatureModal()" class="text-gray-500 hover:text-gray-700 text-xl font-bold">✕</button>
             </div>
             <div class="flex-1 bg-gray-50 p-4 flex items-center justify-center relative">
@@ -158,7 +165,8 @@
         </div>
     </div>
 
-    <script>
+    <!-- ==================== 4. JavaScript 邏輯 ==================== -->
+    <script {nonce}>
         const equipmentData = {
             crane: {
                 title: "固定式起重機日常檢點表",
@@ -225,7 +233,7 @@
 
             mCanvas.addEventListener("touchstart", (e) => {
                 mDrawing = true; const pos = getCoords(e.touches[0].clientX, e.touches[0].clientY);
-                mCtx.getContext; mCtx.beginPath(); mCtx.moveTo(pos.x, pos.y); e.preventDefault();
+                mCtx.beginPath(); mCtx.moveTo(pos.x, pos.y); e.preventDefault();
             }, { passive: false });
             mCanvas.addEventListener("touchend", () => mDrawing = false);
             mCanvas.addEventListener("touchmove", (e) => {
@@ -241,7 +249,7 @@
             mCanvas.width = rect.width;
             mCanvas.height = rect.height;
             mCtx.strokeStyle = "#000000";
-            mCtx.lineWidth = 5; // 微調筆劃，確保更清晰
+            mCtx.lineWidth = 5; 
             mCtx.lineCap = "round";
             mCtx.lineJoin = "round";
         }
@@ -287,8 +295,8 @@
             generateReport();
         }
 
-        // ⭐ 改良：不旋轉，保留完美的橫式高解析裁切
-        function cropAndNormalizeSignature(base64Str, callback) {
+        // ⭐ 核心升級：精準直書去白邊，保留原樣，放大 3 倍維持高清！
+        function cropPureSignature(base64Str, callback) {
             const img = new Image();
             img.src = base64Str;
             img.onload = function() {
@@ -316,14 +324,14 @@
 
                 if (!found) { minX = 0; maxX = img.width; minY = 0; maxY = img.height; }
 
-                const padding = 8;
+                const padding = 10; // 保留合適的邊緣距離
                 minX = Math.max(0, minX - padding); minY = Math.max(0, minY - padding);
                 maxX = Math.min(img.width, maxX + padding); maxY = Math.min(img.height, maxY + padding);
 
                 const w = maxX - minX;
                 const h = maxY - minY;
 
-                // 建立 3 倍解析度畫布，不旋轉，直接切成高精細橫圖
+                // 創建 3 倍高解析度的輸出畫布
                 const outCanvas = document.createElement('canvas');
                 outCanvas.width = w * 3;
                 outCanvas.height = h * 3;
@@ -331,8 +339,9 @@
 
                 oCtx.imageSmoothingEnabled = true;
                 oCtx.imageSmoothingQuality = 'high';
-                oCtx.scale(3, 3); // 放大 3 倍渲染，確保字跡邊緣完全無毛邊
+                oCtx.scale(3, 3); // 放大 3 倍渲染，確保字跡圓滑清晰
 
+                // 直接繪製裁切區塊，不作任何角度旋轉
                 oCtx.drawImage(img, minX, minY, w, h, 0, 0, w, h);
                 callback(outCanvas.toDataURL('image/png'));
             };
@@ -344,7 +353,7 @@
             const dateStr = document.getElementById('inspectDate').value;
             if (!tempSignatureBase64) { alert("⚠️ 請先完成手寫簽名！"); return; }
 
-            cropAndNormalizeSignature(tempSignatureBase64, function(finalSignature) {
+            cropPureSignature(tempSignatureBase64, function(finalSignature) {
                 const results = [];
                 equipmentData[type].items.forEach((_, index) => {
                     const radio = document.querySelector(`input[name="item_${index}"]:checked`);
@@ -357,7 +366,7 @@
                 allRecords.push({ type, date: dateStr, results, remark: document.getElementById('remark').value, signature: finalSignature });
                 
                 localStorage.setItem('equipment_records', JSON.stringify(allRecords));
-                alert('🎉 儲存成功！簽名已切換為「高解析橫式大字」！');
+                alert('🎉 儲存成功！簽名已套用「完美直立大字」模式！');
                 document.getElementById('sig-preview-container').classList.add('hidden');
                 tempSignatureBase64 = "";
                 generateReport();
@@ -400,12 +409,10 @@
             for (let day = 1; day <= 31; day++) {
                 const rec = currentMonthRecords.find(r => parseInt(r.date.slice(8,10)) === day);
                 if (rec && rec.signature) {
-                    // ⭐ 這裡加入了 transform 讓橫式字跡在直立格子中展現大字
+                    // ⭐ 移除所有轉向標籤，配合 object-fit: contain，讓您的手寫字自然漂亮地頂天立地撐滿！
                     sigRow.innerHTML += `
-                        <td class="w-6 h-[120px] p-0 align-middle overflow-hidden" style="border: 1.5px solid #000000; background: #ffffff;">
-                            <div class="w-full h-full flex items-center justify-center">
-                                <img src="${rec.signature}" class="max-w-[110px] max-h-[22px] rotate-90" style="object-fit: contain; filter: contrast(3) brightness(0.2); transform-origin: center;">
-                            </div>
+                        <td class="w-6 h-[120px] p-[2px] align-middle" style="border: 1.5px solid #000000; background: #ffffff;">
+                            <img src="${rec.signature}" class="w-full h-full mx-auto" style="object-fit: contain; filter: contrast(3) brightness(0.2); display: block;">
                         </td>`;
                 } else {
                     sigRow.innerHTML += `<td class="w-6 h-[120px]" style="border: 1.5px solid #000000;"></td>`;

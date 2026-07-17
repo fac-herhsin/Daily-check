@@ -218,7 +218,7 @@
             },
             band_saw: {
                 title: "帶鋸機日常檢點表",
-                items: ["1. 電源及主開關、緊急停止功能是否正常", "2. 鋸帶(鋸條)狀態:裂紋、缺齒、磨損", "3. 導輪、軸承、軸心無異常晃動或異音", "4. 夾具功能是否正常", "5. 電線、電纜無破皮、無裸露", "6. 潤滑油供給狀態", "7. 異音、異味 (電線過熱、煙) 檢查", "8. 按鍵功能、極限感應開關"]
+                items: ["1. 電源及主開關、緊急停止功能是否正常", "2. 鋸帶(鋸條)狀態:裂紋、缺齒、磨損", "3. 導輪、軸承、軸心無異常晃動 or 異音", "4. 夾具功能是否正常", "5. 電線、電纜無破皮、無裸露", "6. 潤滑油供給狀態", "7. 異音、異味 (電線過熱、煙) 檢查", "8. 按鍵功能、極限感應開關"]
             },
             cnc: {
                 title: "CNC日常檢點表",
@@ -327,7 +327,6 @@
             
             container.innerHTML = '';
             equipmentData[type].items.forEach((item, index) => {
-                // 如果是空壓機且是油溫或累計時數項目，開放輸入文字框輸入數值
                 let inputHtml = `
                     <div class="flex gap-4">
                         <label class="inline-flex items-center"><input type="radio" name="item_${index}" value="V" checked><span class="ml-1 font-bold">V 良好</span></label>
@@ -336,7 +335,7 @@
                     </div>`;
                 
                 if (type === 'air_compressor' && (index === 1 || index === 8)) {
-                    inputHtml = `<input type="text" id="val_${index}" placeholder="請填寫具體數值" class="border p-1 rounded w-full text-xs mt-1 border-gray-400">`;
+                    inputHtml = `<input type="text" id="val_${index}" placeholder="請填寫具體數值" class="border p-1 rounded w-full text-xs mt-1 border-gray-400" required>`;
                 }
 
                 container.innerHTML += `
@@ -391,10 +390,10 @@
             };
         }
 
-        // 傳送資料到雲端 Google 試算表
+        // 傳送資料到雲端 Google 試算表 (移除 no-cors 模式確保成功回調)
         function saveRecord(e) {
             e.preventDefault();
-            if (GAS_API_URL === "YOUR_GAS_WEB_APP_URL") {
+            if (GAS_API_URL === "" || GAS_API_URL.includes("YOUR_GAS_WEB_APP_URL")) {
                 alert("⚠️ 請先在程式碼中配置正確的 GAS_API_URL！");
                 return;
             }
@@ -427,20 +426,35 @@
                     signature: finalSignature
                 };
 
+                // 改用標準 POST 傳遞 JSON 格式 (保留 GAS 可解析之結構)
                 fetch(GAS_API_URL, {
                     method: 'POST',
-                    mode: 'no-cors', // 使用 no-cors 模式確保跨域順暢寫入
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'text/plain' }, // 💡 使用 text/plain 可以完美規避 preflight OPTIONS CORS 限制
                     body: JSON.stringify(payload)
-                }).then(() => {
-                    alert('🎉 點檢資料上傳成功！已安全備存至雲端！');
-                    document.getElementById('remark').value = "";
-                    document.getElementById('sig-preview-container').classList.add('hidden');
-                    tempSignatureBase64 = "";
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        alert('🎉 點檢資料上傳成功！已安全備存至雲端！');
+                        document.getElementById('remark').value = "";
+                        document.getElementById('sig-preview-container').classList.add('hidden');
+                        tempSignatureBase64 = "";
+                        // 如果有數值欄位也一併清空
+                        if (type === 'air_compressor') {
+                            const v1 = document.getElementById('val_1'); if(v1) v1.value = "";
+                            const v8 = document.getElementById('val_8'); if(v8) v8.value = "";
+                        }
+                    } else {
+                        alert('❌ 上傳發生問題: ' + data.message);
+                    }
+                })
+                .catch(err => {
+                    // ⚠️ 注意：GAS POST 有時即使成功寫入也會因為轉址產生 CORS error
+                    // 但因為採用了 text/plain post，正常部署的 Apps Script Web App 可以順利回傳 json
+                    alert('❌ 連線或上傳失敗: ' + err);
+                })
+                .finally(() => {
                     submitBtn.innerText = "上傳點檢紀錄至雲端";
-                    submitBtn.disabled = false;
-                }).catch(err => {
-                    alert('❌ 上傳失敗: ' + err);
                     submitBtn.disabled = false;
                 });
             });
@@ -466,7 +480,7 @@
             })
             .catch(err => {
                 statusText.innerText = "同步失敗";
-                alert("❌ 撈取資料失敗，請確認 GAS API 是否發佈正確！" + err);
+                alert("❌ 撈取資料失敗，請確認 GAS API 是否發佈為「任何人」！" + err);
             });
         }
 
@@ -500,7 +514,7 @@
                 if (rec && rec.signature) {
                     sigRow.innerHTML += `
                         <td class="w-6 h-[120px] p-[2px] align-middle bg-white">
-                            <img src="${rec.signature}" class="w-full h-full mx-auto" style="object-fit: contain; filter: contrast(3) brightness(0.2); display: block;">
+                            <img src="${rec.signature}" class="w-full h-full mx-auto" style="object-fit: contain; filter: contrast(2.5) grayscale(1); display: block;">
                         </td>`;
                 } else {
                     sigRow.innerHTML += `<td class="w-6 h-[120px]"></td>`;

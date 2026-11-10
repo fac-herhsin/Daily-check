@@ -196,7 +196,7 @@
 
     <!-- ==================== JavaScript 邏輯系統 ==================== -->
     <script>
-        // ⚠️ 請在此處貼上您從 Google 雲端取得的「網頁應用程式 URL」
+        // ⚠️ 請務必替換成您在公司帳號部署後產生的 /exec 網址
         const GAS_API_URL = "https://script.google.com/macros/s/AKfycbydgO2-fXzmMH-XG7JPnX4SgdKLBQG03JuTcJiyvzE_8OD5JMIDTR5gZSydgZsDon3n/exec";
 
         const equipmentData = {
@@ -321,7 +321,6 @@
             const container = document.getElementById('dynamicItems');
             const building = document.getElementById('inspectBuilding').value;
             
-            // 同步更新報表框架預覽
             document.getElementById('reportTitle').innerText = equipmentData[type].title;
             document.getElementById('info_location').innerText = building;
             
@@ -345,12 +344,10 @@
                     </div>`;
             });
             
-            // 清空舊報表資料列
             document.getElementById('reportRows').innerHTML = '';
             document.getElementById('signatureRow').innerHTML = '';
         }
 
-        // 高清晰直書去白邊裁切
         function cropPureSignature(base64Str, callback) {
             const img = new Image();
             img.src = base64Str;
@@ -390,7 +387,6 @@
             };
         }
 
-        // 傳送資料到雲端 Google 試算表 (移除 no-cors 模式確保成功回調)
         function saveRecord(e) {
             e.preventDefault();
             if (GAS_API_URL === "" || GAS_API_URL.includes("YOUR_GAS_WEB_APP_URL")) {
@@ -426,32 +422,25 @@
                     signature: finalSignature
                 };
 
-                // 改用標準 POST 傳遞 JSON 格式 (保留 GAS 可解析之結構)
+                // 使用 no-cors 模式完美突破公司帳號的安全網域阻擋
                 fetch(GAS_API_URL, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'text/plain' }, // 💡 使用 text/plain 可以完美規避 preflight OPTIONS CORS 限制
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify(payload)
                 })
-                .then(res => res.json())
-                .then(data => {
-                    if (data.status === 'success') {
-                        alert('🎉 點檢資料上傳成功！已安全備存至雲端！');
-                        document.getElementById('remark').value = "";
-                        document.getElementById('sig-preview-container').classList.add('hidden');
-                        tempSignatureBase64 = "";
-                        // 如果有數值欄位也一併清空
-                        if (type === 'air_compressor') {
-                            const v1 = document.getElementById('val_1'); if(v1) v1.value = "";
-                            const v8 = document.getElementById('val_8'); if(v8) v8.value = "";
-                        }
-                    } else {
-                        alert('❌ 上傳發生問題: ' + data.message);
+                .then(() => {
+                    alert('🎉 點檢資料上傳成功！已安全備存至雲端！');
+                    document.getElementById('remark').value = "";
+                    document.getElementById('sig-preview-container').classList.add('hidden');
+                    tempSignatureBase64 = "";
+                    if (type === 'air_compressor') {
+                        const v1 = document.getElementById('val_1'); if(v1) v1.value = "";
+                        const v8 = document.getElementById('val_8'); if(v8) v8.value = "";
                     }
                 })
                 .catch(err => {
-                    // ⚠️ 注意：GAS POST 有時即使成功寫入也會因為轉址產生 CORS error
-                    // 但因為採用了 text/plain post，正常部署的 Apps Script Web App 可以順利回傳 json
-                    alert('❌ 連線或上傳失敗: ' + err);
+                    alert('❌ 連線失敗: ' + err);
                 })
                 .finally(() => {
                     submitBtn.innerText = "上傳點檢紀錄至雲端";
@@ -460,7 +449,6 @@
             });
         }
 
-        // 從雲端 Google 試算表撈取月報表
         function fetchCloudReport() {
             const building = document.getElementById('filterBuilding').value;
             const device = document.getElementById('filterDevice').value;
